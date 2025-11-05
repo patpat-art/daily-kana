@@ -10,22 +10,22 @@ import {
   QueryDocumentSnapshot,
   query,
   where,
-  writeBatch
+  writeBatch,
+  // --- MODIFICA 1: Importa updateDoc ---
+  updateDoc 
 } from "firebase/firestore";
 
-// --- TIPI AGGIORNATI ---
-
+// --- TIPI (invariati) ---
 export type StudySet = {
   id: string;
   name: string;
 };
 
-// --- MODIFICA: Aggiunto il campo 'romaji' ---
 export type LibraryKanji = {
   id: string;
   char: string;
-  reading: string; // Es. "わたし"
-  romaji: string;  // Es. "watashi"
+  reading: string;
+  romaji: string;
   meaning: string;
   setId: string;
 };
@@ -33,9 +33,8 @@ export type LibraryKanji = {
 export type NewStudySet = Omit<StudySet, 'id'>;
 export type NewLibraryKanji = Omit<LibraryKanji, 'id'>;
 
-// --- (Tutto il resto del file è INVARIATO) ---
 
-// --- FUNZIONI PER I SET ---
+// --- FUNZIONI SET (invariate) ---
 
 export const getStudySets = async (): Promise<StudySet[]> => {
   const setsCol = collection(db, 'studySets');
@@ -65,7 +64,7 @@ export const deleteSet = async (setId: string): Promise<void> => {
   await batch.commit();
 };
 
-// --- FUNZIONI PER I KANJI (AGGIORNATE) ---
+// --- FUNZIONI KANJI ---
 
 export const getKanjiForSet = async (setId: string): Promise<LibraryKanji[]> => {
   const q = query(collection(db, 'kanji'), where('setId', '==', setId));
@@ -86,4 +85,11 @@ export const addKanji = async (kanji: NewLibraryKanji): Promise<LibraryKanji> =>
 export const deleteKanji = async (id: string): Promise<void> => {
   const kanjiDoc = doc(db, 'kanji', id);
   await deleteDoc(kanjiDoc);
+};
+
+// --- MODIFICA 2: Aggiunta funzione 'updateKanji' ---
+// Accetta un ID e un oggetto parziale di dati da aggiornare
+export const updateKanji = async (id: string, data: Partial<LibraryKanji>): Promise<void> => {
+  const kanjiDoc = doc(db, 'kanji', id);
+  await updateDoc(kanjiDoc, data);
 };

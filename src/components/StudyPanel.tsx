@@ -6,8 +6,9 @@ import { SpeechOnIcon, SpeechOffIcon } from './Icons.tsx';
 // Props per StudyPanel
 interface StudyPanelProps {
   onClose: () => void;
-  visibleSets: string[];
-  onPlayClick: () => void; // NOTA: modificato per semplicità, non passa più 'text'
+  visibleSets: string[]; // Mantenuto per determinare il tab attivo iniziale
+  allSetNames: string[]; // <-- NUOVA PROP: La lista di tutti i set
+  onPlayClick: () => void;
   isSpeechEnabled: boolean;
   setIsSpeechEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   initAudio: () => void;
@@ -17,18 +18,21 @@ interface StudyPanelProps {
 export const StudyPanel: React.FC<StudyPanelProps> = ({ 
   onClose, 
   visibleSets,
+  allSetNames, // <-- NUOVA PROP
   onPlayClick,
   isSpeechEnabled,
   setIsSpeechEnabled,
   initAudio,
 }) => {
-  const [activeTab, setActiveTab] = useState(visibleSets[0]);
+  // Logica migliorata: usa visibleSets[0] se esiste, altrimenti il primo di tutti i set
+  const [activeTab, setActiveTab] = useState(visibleSets[0] || allSetNames[0]);
 
+  // Questo assicura che un tab valido sia sempre selezionato
   useEffect(() => {
-    if (!visibleSets.includes(activeTab)) {
-      setActiveTab(visibleSets[0]);
+    if (!allSetNames.includes(activeTab)) {
+      setActiveTab(allSetNames[0]);
     }
-  }, [visibleSets, activeTab]);
+  }, [allSetNames, activeTab]);
   
   const handleClose = () => {
       onPlayClick();
@@ -43,8 +47,8 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
     }
   };
 
-  const activeSetName = activeTab || visibleSets[0];
-  if (!activeSetName) return null;
+  const activeSetName = activeTab; // Usiamo direttamente lo stato
+  if (!activeSetName) return null; // Sicurezza se allSetNames è vuoto
 
   const setName = activeSetName;
   const categoriesForSet = CATEGORIES[setName] || [];
@@ -60,7 +64,7 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
-              onPlayClick(); // CORREZIONE: Usa onPlayClick semplice
+              onPlayClick(); 
               setIsSpeechEnabled(prev => !prev);
             }}
             className={`p-2 rounded-full transition-colors
@@ -75,8 +79,10 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
         </div>
       </div>
       
+      {/* --- MODIFICA CHIAVE --- */}
+      {/* Ora mappiamo su 'allSetNames' per mostrare sempre tutti i tab */}
       <div className="flex border-b mb-4">
-        {visibleSets.map((modeName: string) => ( // CORREZIONE: Aggiunto tipo string
+        {allSetNames.map((modeName: string) => ( 
           <button
             key={modeName}
             className={`py-2 px-4 capitalize japanese-char ${activeTab === modeName ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
@@ -89,6 +95,7 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
           </button>
         ))}
       </div>
+      {/* --- FINE MODIFICA CHIAVE --- */}
       
       <div className="space-y-6">
         {categoriesForSet.map(cat => {
@@ -98,7 +105,7 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
               <div key="kanji-grid">
                  <h3 className="text-md font-semibold text-gray-600 mb-2">{cat.name}</h3>
                  <div className="grid grid-cols-5 gap-2">
-                   {allKanji.map((charObj: Character) => ( // CORREZIONE: Aggiunto tipo Character
+                   {allKanji.map((charObj: Character) => (
                      <button
                        key={charObj.char}
                        onClick={() => handleCharClick(charObj.char, charObj.romaji)}

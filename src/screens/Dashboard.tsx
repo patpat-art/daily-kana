@@ -144,9 +144,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ history, allSets, visibleS
     // --- JSX (Layout Modificato con i Tab) ---
     return (
         <div className="w-full p-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-6">
-              I tuoi Progressi
-            </h1>
             
             {/* Messaggio se non ci sono dati */}
             {history.length === 0 && (

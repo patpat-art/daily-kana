@@ -762,6 +762,7 @@ useEffect(() => {
         <StatsPanel 
             history={sessionHistory} 
             allSets={CHARACTER_SETS}
+            allSetNames={Object.keys(CHARACTER_SETS)}
             onClose={() => {
               handlePlayClick();
               setShowStats(false);
@@ -783,6 +784,7 @@ useEffect(() => {
           visibleSets={selectedSets}
           onPlayClick={handlePlayClick} // Passa la funzione base
           isSpeechEnabled={isSpeechEnabled}
+          allSetNames={Object.keys(CHARACTER_SETS)}
           setIsSpeechEnabled={setIsSpeechEnabled}
           initAudio={initAudio}
         />

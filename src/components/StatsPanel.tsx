@@ -63,9 +63,10 @@ interface StatsPanelProps {
   allSets: CharacterSet;
   onClose: () => void;
   visibleSets: string[];
+  allSetNames: string[];
   onPlayClick: () => void;
 }
-
+  
 // Pannello Statistiche (Modificato per scorrimento)
 export const StatsPanel: React.FC<StatsPanelProps> = ({ history, allSets, onClose, visibleSets }) => {
     const statsMap = useMemo(() => getAccuracyMap(history), [history]);

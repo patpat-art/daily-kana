@@ -87,7 +87,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
           <Dashboard 
             history={props.sessionHistory}
             allSets={props.allSets}
-            visibleSets={props.visibleSets}
+            // --- MODIFICA PER MOSTRARE TUTTI I PROGRESSI ---
+            // Prima era: visibleSets={props.visibleSets}
+            // Ora passiamo le chiavi di *tutti* i set, non solo quelli visibili/selezionati.
+            visibleSets={Object.keys(props.allSets)}
           />
         )}
 
@@ -95,6 +98,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
         {activeView === 'settings' && (
           <SettingsPanel
             selectedModes={props.selectedSets}
+            allSetNames={Object.keys(props.allSets)}
             selectionMap={props.selectionMap}
             setSelectionMap={props.setSelectionMap}
             resetProgress={props.resetProgress}

@@ -14,6 +14,8 @@ interface SettingsPanelProps {
   isAutoSkipEnabled: boolean;
   setIsAutoSkipEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onPlayClick: () => void;
+  // ⭐ AGGIUNTA CHIAVE: Questa prop mancava!
+  allSetNames: string[]; 
 }
 
 // --- Pannello Impostazioni (Modificato per scorrimento e bottone Toggle-All) ---
@@ -25,18 +27,21 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   direction,
   isAutoSkipEnabled,
   setIsAutoSkipEnabled,
-  onPlayClick
+  onPlayClick,
+  allSetNames // ⭐ AGGIUNTA CHIAVE: Destrutturiamo la nuova prop
 }) => {
-  const [activeTab, setActiveTab] = useState(selectedModes[0]);
+  // Imposta il tab attivo iniziale: il primo dei selezionati, altrimenti il primo di TUTTI i set.
+  const [activeTab, setActiveTab] = useState(selectedModes[0] || allSetNames[0]); // Usa allSetNames[0] come fallback
 
   useEffect(() => {
-    if (!selectedModes.includes(activeTab)) {
-      setActiveTab(selectedModes[0]);
+    // Ora controlliamo su tutti i set disponibili (allSetNames)
+    if (!allSetNames.includes(activeTab)) {
+      setActiveTab(allSetNames[0]);
     }
-  }, [selectedModes, activeTab]);
+  }, [allSetNames, activeTab]);
   
 
-  const activeSetName = activeTab || selectedModes[0];
+  const activeSetName = activeTab; // Rimosso fallback, gestito da useState/useEffect
   if (!activeSetName) return null;
 
   const setName = activeSetName;
@@ -102,18 +107,14 @@ return (
     className="w-full p-8" // <-- Layout pulito (come Dashboard)
     // onClick rimosso
   >
-    <div className="flex justify-between items-center mb-2">
-      <h1 className="text-4xl font-bold text-gray-800">
-        Impostazioni
-      </h1>
-      {/* Pulsante 'X' rimosso */}
-    </div>
+
     
     {/* Contenuto di SettingsPanel */}
     <div className="p-6 bg-white rounded-lg shadow-md mt-6">
       
       <div className="flex border-b mb-4">
-        {selectedModes.map((modeName: string) => ( // CORREZIONE: Aggiunto tipo string
+        {/* ⭐ CHIAVE: Usiamo allSetNames per mostrare tutti i tab */}
+        {allSetNames.map((modeName: string) => ( 
           <button
             key={modeName}
             className={`py-2 px-4 capitalize japanese-char ${activeTab === modeName ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
