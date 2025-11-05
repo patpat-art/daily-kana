@@ -272,7 +272,7 @@ export const CATEGORIES: CategorySet = {
     { id: 'handakuten', name: 'Handakuten' },
   ],
   kanji_basic: [
-    { id: 'basic', name: 'Kanji' }
+    { id: 'basic', name: 'Kanji Basic' }
   ]
 };
 

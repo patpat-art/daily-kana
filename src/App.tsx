@@ -10,6 +10,7 @@ import { StatsPanel } from './components/StatsPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { StudyPanel } from './components/StudyPanel';
 import { HomeScreen } from './screens/HomeScreen';
+import { HomeQuizScreen } from './screens/HomeQuizScreen';
 import { QuizScreen } from './screens/QuizScreen';
 
 // --- Componente Principale App ---
@@ -79,7 +80,55 @@ export default function KanaKanjiTrainer() {
     }
     return null;
   });
+  
+// --- Sanificazione Dati Avvio ---
+  // Questo useEffect viene eseguito una sola volta al caricamento
+  // per pulire dati obsoleti da localStorage.
+  useEffect(() => {
+    // 1. Definisci la "fonte di verità": le chiavi valide
+    const validSetNames = Object.keys(CHARACTER_SETS);
 
+    // 2. Sanifica i 'selectedSets'
+    setSelectedSets(currentSets => {
+      const cleanSets = currentSets.filter(setName => validSetNames.includes(setName));
+      
+      // Controllo di sicurezza: se la pulizia rimuove tutto,
+      // torna a un default sicuro per evitare un'app vuota.
+      if (cleanSets.length === 0 && currentSets.length > 0) {
+        console.warn('Dati "selectedSets" obsoleti trovati. Reset a hiragana.');
+        return ['hiragana']; // Default sicuro
+      }
+      return cleanSets;
+    });
+
+    // 3. Sanifica la 'selectionMap'
+    setSelectionMap(currentMap => {
+      let needsCleaning = false;
+      const cleanMap: SelectionMap = {};
+
+      // Controlla se la mappa caricata ha chiavi che NON sono in CHARACTER_SETS
+      if (Object.keys(currentMap).some(key => !validSetNames.includes(key))) {
+        needsCleaning = true;
+      }
+
+      if (needsCleaning) {
+        console.warn('Dati "selectionMap" obsoleti trovati. Filtro in corso...');
+        // Ricostruisci la mappa da zero, usando solo chiavi valide
+        validSetNames.forEach(validName => {
+          // Mantieni i dati validi se esistono, altrimenti usa l'inizializzazione
+          cleanMap[validName] = currentMap[validName] || initialSelectionMap[validName];
+        });
+        return cleanMap;
+      }
+      
+      // Se non è necessaria la pulizia, restituisci la mappa originale
+      return currentMap;
+    });
+  
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // <-- L'array vuoto [] assicura che venga eseguito SOLO una volta
+
+// --- Gestione Audio con Tone.js ---
   const initAudio = useCallback(async () => {
     if (!isAudioReady && sounds) {
       await Tone.start();
