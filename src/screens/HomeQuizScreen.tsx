@@ -17,7 +17,6 @@ type HomeScreenProps = {
   initAudio: () => void;
   isSoundEffectsEnabled: boolean;
   setIsSoundEffectsEnabled: (value: React.SetStateAction<boolean>) => void;
-  setShowSettings: (value: React.SetStateAction<boolean>) => void;
   selectedSets: string[];
   toggleMode: (modeName: string) => void; // Importante!
   direction: Direction;
@@ -65,19 +64,7 @@ export const HomeQuizScreen: React.FC<HomeScreenProps> = ({
           >
             {isSoundEffectsEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
           </button>
-          
-          <button
-            onClick={() => {
-              handlePlayClick();
-              setShowSettings(true);
-            }}
-            className="absolute top-6 right-6 text-gray-500 hover:text-gray-800 p-2 rounded-full hover:bg-gray-200 transition
-                       disabled:text-gray-300 disabled:cursor-not-allowed"
-            title="Impostazioni"
-            disabled={selectedSets.length === 0}
-          >
-            <SettingsIcon />
-          </button>
+        
           
           <div className="flex flex-row space-x-4 md:space-x-8 mb-10 mt-10">
             <SetupCard char="あ" title="Hiragana" isSelected={selectedSets.includes('hiragana')} onClick={() => { handlePlayClick(); toggleMode('hiragana'); }} />

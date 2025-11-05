@@ -40,6 +40,7 @@ type ActiveView = 'dashboard' | 'quiz';
 export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
   // 4. Stato per gestire quale vista mostrare nell'area contenuti
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     // 5. Contenitore principale
@@ -55,7 +56,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
                   }`}
     >
       {/* --- 6. La Sidebar --- */}
-      <Sidebar activeView={activeView} setActiveView={setActiveView} />
+      <Sidebar
+  activeView={activeView}
+  setActiveView={setActiveView}
+  isSidebarOpen={isSidebarOpen}
+  setIsSidebarOpen={setIsSidebarOpen}
+  handlePlayClick={props.handlePlayClick}
+  setShowSettings={props.setShowSettings}
+  selectedSets={props.selectedSets}
+/>
 
       {/* --- 7. L'area Contenuti --- */}
       <main className="flex-1 h-screen overflow-auto bg-gray-50">
