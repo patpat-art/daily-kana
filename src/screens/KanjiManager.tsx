@@ -1,48 +1,37 @@
 // src/screens/KanjiManager.tsx
 
 import React, { useState, useEffect } from 'react';
-// Le icone che useremo
-import { TrashIcon, EditIcon } from '../components/Icons'; 
+import * as wanakana from 'wanakana'; 
 
-// --- MODIFICA 1: Importiamo i tipi e le funzioni dal nostro NUOVO service ---
+import { TrashIcon, EditIcon } from '../components/Icons'; 
 import {
-  // Funzioni Set
   getStudySets,
   addSet,
   deleteSet,
-  // Funzioni Kanji
   getKanjiForSet,
   addKanji,
   deleteKanji,
-  // Tipi
   type StudySet,
   type LibraryKanji,
   type NewStudySet,
   type NewLibraryKanji
-} from '../services/kanjiService'; // Assicurati che il percorso sia corretto!
+} from '../services/kanjiService'; 
 
 export const KanjiManager: React.FC = () => {
-  // --- MODIFICA 2: Stati Riorganizzati ---
-  
-  // Dati
+  // Stati (invariati)
   const [sets, setSets] = useState<StudySet[]>([]);
-  const [kanjiForSet, setKanjiForSet] = useState<LibraryKanji[]>([]); // I kanji del set SELEZIONATO
-
-  // Stato della UI
-  const [currentSet, setCurrentSet] = useState<StudySet | null>(null); // Il set SELEZIONATO
+  const [kanjiForSet, setKanjiForSet] = useState<LibraryKanji[]>([]); 
+  const [currentSet, setCurrentSet] = useState<StudySet | null>(null);
   const [loadingSets, setLoadingSets] = useState(true);
   const [loadingKanji, setLoadingKanji] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Stati dei Form
   const [newSetName, setNewSetName] = useState('');
   const [newKanjiChar, setNewKanjiChar] = useState('');
   const [newKanjiReading, setNewKanjiReading] = useState('');
   const [newKanjiMeaning, setNewKanjiMeaning] = useState('');
 
-  // --- MODIFICA 3: Caricamento Dati Iniziale (SOLO SET) ---
+  // Caricamento Set (invariato)
   useEffect(() => {
-    // Carichiamo solo i set quando il componente appare
     const loadSets = async () => {
       setLoadingSets(true);
       setError(null);
@@ -56,19 +45,25 @@ export const KanjiManager: React.FC = () => {
         setLoadingSets(false);
       }
     };
-
     loadSets();
-  }, []); // Esegui solo una volta
+  }, []);
 
-  // --- MODIFICA 4: Nuove Funzioni "Handler" ---
-
-  // Chiamata quando l'utente clicca su un set per vederne i dettagli
+  // Nuova funzione 'handler' per l'input di lettura
+  const handleReadingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const romaji = e.target.value;
+    
+    // --- CORREZIONE 1: Aggiunto 'as any' ---
+    const kana = wanakana.toKana(romaji, { isIME: true, useObsoleteKana: false } as any);
+    
+    setNewKanjiReading(kana);
+  };
+  
+  // (Tutte le altre funzioni handler sono invariate)
   const handleSetSelect = async (set: StudySet) => {
-    setCurrentSet(set); // Passa alla vista "Dettaglio"
-    setLoadingKanji(true); // Mostra caricamento kanji
+    setCurrentSet(set); 
+    setLoadingKanji(true);
     setError(null);
     try {
-      // Carica i kanji PER QUEL SET
       const fetchedKanji = await getKanjiForSet(set.id);
       setKanjiForSet(fetchedKanji);
     } catch (err) {
@@ -79,25 +74,28 @@ export const KanjiManager: React.FC = () => {
     }
   };
 
-  // Chiamata quando l'utente clicca "Indietro" dalla vista dettaglio
   const handleBackToList = () => {
-    setCurrentSet(null); // Torna alla vista "Lista"
-    setKanjiForSet([]); // Svuota i kanji
+    setCurrentSet(null); 
+    setKanjiForSet([]); 
     setError(null);
   };
-
-  // --- Funzioni CRUD (Create, Read, Update, Delete) ---
 
   const handleAddSet = async () => {
     if (newSetName.trim() === '') return;
     const newSetData: NewStudySet = { name: newSetName };
-    
     try {
       const newSetWithId = await addSet(newSetData);
-      setSets([...sets, newSetWithId]); // Aggiorna stato locale
-      setNewSetName('');
+      
+      if (newSetWithId && newSetWithId.id) {
+        setSets([...sets, newSetWithId]);
+        setNewSetName('');
+      } else {
+        console.error("FALLIMENTO: 'addSet' non ha restituito un oggetto valido.");
+        setError("Errore sconosciuto: i dati creati non sono validi.");
+      }
+      
     } catch (err) {
-      console.error("Errore aggiunta set:", err);
+      console.error("Errore aggiunta set (nel catch):", err);
       setError("Impossibile aggiungere il set.");
     }
   };
@@ -106,10 +104,8 @@ export const KanjiManager: React.FC = () => {
     if (!window.confirm("Sei sicuro? Questo eliminerà il set E TUTTI i kanji al suo interno.")) {
       return;
     }
-    
     try {
       await deleteSet(setId);
-      // Aggiorna stato locale
       setSets(sets.filter(set => set.id !== setId));
     } catch (err) {
       console.error("Errore eliminazione set:", err);
@@ -118,23 +114,23 @@ export const KanjiManager: React.FC = () => {
   };
 
   const handleAddKanji = async () => {
-    if (!currentSet) return; // Controllo di sicurezza
+    if (!currentSet) return;
     if (!newKanjiChar.trim() || !newKanjiReading.trim() || !newKanjiMeaning.trim()) return;
+    
+    const romaji = wanakana.toRomaji(newKanjiReading);
 
-    // Il nuovo kanji appartiene al 'currentSet'
     const newKanjiData: NewLibraryKanji = {
       char: newKanjiChar,
-      reading: newKanjiReading,
+      reading: newKanjiReading, 
+      romaji: romaji,           
       meaning: newKanjiMeaning,
-      setId: currentSet.id, // <-- Ecco il collegamento!
+      setId: currentSet.id,
     };
     
     try {
       const newKanjiWithId = await addKanji(newKanjiData);
-      // Aggiorna lo stato locale dei kanji di questo set
       setKanjiForSet([...kanjiForSet, newKanjiWithId]);
       
-      // Resetta il form
       setNewKanjiChar('');
       setNewKanjiReading('');
       setNewKanjiMeaning('');
@@ -147,7 +143,6 @@ export const KanjiManager: React.FC = () => {
   const handleDeleteKanji = async (kanjiId: string) => {
     try {
       await deleteKanji(kanjiId);
-      // Aggiorna stato locale
       setKanjiForSet(kanjiForSet.filter(k => k.id !== kanjiId));
     } catch (err) {
       console.error("Errore eliminazione kanji:", err);
@@ -155,9 +150,6 @@ export const KanjiManager: React.FC = () => {
     }
   };
 
-  // --- MODIFICA 5: Nuove Funzioni di Rendering ---
-
-  // Vista 1: Mostra la lista dei set
   const renderSetList = () => (
     <>
       <div className="p-6 bg-white rounded-lg shadow-md mt-6">
@@ -178,7 +170,6 @@ export const KanjiManager: React.FC = () => {
           </button>
         </div>
       </div>
-
       <div className="p-6 bg-white rounded-lg shadow-md mt-6">
         <h2 className="text-2xl font-semibold mb-4">I Miei Set di Studio</h2>
         {loadingSets && <p>Caricamento set...</p>}
@@ -212,7 +203,6 @@ export const KanjiManager: React.FC = () => {
     </>
   );
 
-  // Vista 2: Mostra i dettagli e i kanji di UN set
   const renderSetDetail = () => (
     <>
       <button onClick={handleBackToList} className="mb-4 text-blue-600 font-semibold">
@@ -224,7 +214,6 @@ export const KanjiManager: React.FC = () => {
           Gestisci Set: <span className="text-blue-600">{currentSet?.name}</span>
         </h2>
         
-        {/* Form per Nuovo Kanji (ora è QUI) */}
         <div className="p-4 border border-gray-200 rounded-lg mb-6 space-y-3">
           <h3 className="text-lg font-semibold">Aggiungi Nuovo Kanji a questo Set</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -235,16 +224,22 @@ export const KanjiManager: React.FC = () => {
               placeholder="Kanji (es. 私)"
               className="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 japanese-char text-lg"
             />
+            
             <input
               type="text"
-              value={newKanjiReading}
-              onChange={(e) => setNewKanjiReading(e.target.value)}
-              placeholder="Lettura (es. わたし)"
+              value={newKanjiReading} 
+              onChange={handleReadingChange} 
+              placeholder="Lettura (digita romaji)" 
               className="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 japanese-char text-lg"
+              autoComplete="off" 
+              autoCapitalize="off"
+              autoCorrect="off"
             />
+            
             <input
               type="text"
               value={newKanjiMeaning}
+              // --- CORREZIONE 2: Corretto 'e.targe' in 'e.target' ---
               onChange={(e) => setNewKanjiMeaning(e.target.value)}
               placeholder="Significato (es. io)"
               className="p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-lg"
@@ -258,7 +253,6 @@ export const KanjiManager: React.FC = () => {
           </button>
         </div>
 
-        {/* Lista dei Kanji IN QUESTO SET */}
         <h3 className="text-lg font-semibold mb-3">Kanji in questo set</h3>
         {loadingKanji && <p>Caricamento kanji...</p>}
         {kanjiForSet.length === 0 && !loadingKanji && (
@@ -287,24 +281,18 @@ export const KanjiManager: React.FC = () => {
     </>
   );
 
-  // --- MODIFICA 6: Return Principale Semplificato ---
   return (
     <div className="w-full p-8">
       <h1 className="text-4xl font-bold text-gray-800 mb-6">
         I Miei Kanji
       </h1>
       
-      {/* Mostra un messaggio di errore globale se c'è */}
       {error && (
         <div className="p-4 bg-red-100 text-red-700 rounded-lg mb-4">
           {error}
         </div>
       )}
 
-      {/* Logica di rendering principale:
-        Se 'currentSet' è stato scelto, mostra il dettaglio.
-        Altrimenti, mostra la lista dei set.
-      */}
       {currentSet ? renderSetDetail() : renderSetList()}
       
     </div>
