@@ -1,18 +1,16 @@
-// src/components/Sidebar.tsx
-
 import React from 'react';
-// Importa le icone che ti servono
-import { ChartIcon, QuizIcon, SettingsIcon } from './Icons';
+// Importa le icone che ti servono (StudyIcon è nuova)
+import { ChartIcon, QuizIcon, SettingsIcon, StudyIcon } from './Icons'; // <-- Aggiungi StudyIcon
 
 // --- Props Aggiornate (molto più semplici) ---
-type ActiveView = 'dashboard' | 'quiz' | 'settings';
+type ActiveView = 'dashboard' | 'quiz' | 'settings' | 'kanjiManager'; // <-- AGGIUNGI 'kanjiManager'
 
 type SidebarProps = {
   activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
 };
 
-// --- Componente NavLink (Modificato per essere sempre ridotto) ---
+// --- Componente NavLink (Invariato) ---
 const NavLink: React.FC<{
   label: string;
   icon: React.ReactNode;
@@ -31,7 +29,6 @@ const NavLink: React.FC<{
                   }`}
     >
       {icon}
-      {/* Il testo è stato rimosso, vive solo nel tooltip */}
     </button>
   );
 };
@@ -46,7 +43,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       className={`h-screen bg-white text-gray-800 p-5 flex flex-col border-r border-gray-200 
                   w-20`} // <-- LARGHEZZA FISSA
     >
-      {/* La navigazione è tutto ciò che rimane */}
       <nav className="flex flex-col space-y-2">
         {/* 1. Pratica (Quiz) - ORA IL PRIMO */}
         <NavLink
@@ -55,14 +51,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isActive={activeView === 'quiz'}
           onClick={() => setActiveView('quiz')}
         />
-        {/* 2. Progressi (Dashboard) */}
+
+        {/* 2. I Miei Kanji (NUOVA PAGINA) */}
+        <NavLink
+          label="I Miei Kanji"
+          icon={<StudyIcon />}
+          isActive={activeView === 'kanjiManager'}
+          onClick={() => setActiveView('kanjiManager')}
+        />
+
+        {/* 3. Progressi (Dashboard) */}
         <NavLink
           label="Progressi"
           icon={<ChartIcon />}
           isActive={activeView === 'dashboard'}
           onClick={() => setActiveView('dashboard')}
         />
-        {/* 3. Impostazioni (Settings) - NUOVO LINK */}
+        
+        {/* 4. Impostazioni (Settings) */}
         <NavLink
           label="Impostazioni"
           icon={<SettingsIcon />}
@@ -70,7 +76,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setActiveView('settings')}
         />
       </nav>
-      {/* Il Titolo e il bottone 'Riduci' sono stati rimossi */}
     </div>
   );
 };

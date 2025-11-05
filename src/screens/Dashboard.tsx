@@ -1,10 +1,8 @@
-// (Sostituisci l'intero file)
-
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react'; // Aggiunto useState e useEffect
 import type { CharacterSet, Character, SessionHistoryItem, StatsMap } from '../data/characters.ts';
 import { COLS_MAP, VOWEL_ROWS_MAP } from '../data/characters.ts';
 
-// --- Funzioni Helper (copiate da StatsPanel) ---
+// --- Funzioni Helper (Invariate) ---
 
 const getAccuracyMap = (sessionHistory: SessionHistoryItem[]): StatsMap => {
   return sessionHistory.reduce((acc: StatsMap, item) => {
@@ -31,7 +29,7 @@ const COLORS = {
 const getAccuracyStyle = (accuracy: number | null, isAttempted: boolean): React.CSSProperties => {
   if (!isAttempted || accuracy === null) {
     return { 
-      backgroundColor: '#E5E7EB', // Grigio chiaro per non tentato
+      backgroundColor: '#E5E7EB',
       color: '#6B7280'
     };
   }
@@ -57,20 +55,21 @@ const getAccuracyStyle = (accuracy: number | null, isAttempted: boolean): React.
   };
 };
 
-// --- Props per Dashboard (basate su StatsPanel) ---
+// --- Props (Invariate) ---
 interface DashboardProps {
   history: SessionHistoryItem[];
   allSets: CharacterSet;
   visibleSets: string[];
 }
 
-// --- Componente Dashboard (logica interna da StatsPanel) ---
+// --- Componente Dashboard (Logica e JSX Modificati) ---
 export const Dashboard: React.FC<DashboardProps> = ({ history, allSets, visibleSets }) => {
     
-    // Tutta la logica per calcolare le statistiche
+    // Logica di calcolo (Invariata)
     const statsMap = useMemo(() => getAccuracyMap(history), [history]);
 
     const getStatsGridData = (setName: string, charType: string) => {
+        // ... (Questa funzione helper rimane identica)
         const fullSet = allSets[setName];
         if (!fullSet) return { header: [], rows: [] };
         const charsOfType = fullSet.filter(c => c.type === charType);
@@ -98,83 +97,127 @@ export const Dashboard: React.FC<DashboardProps> = ({ history, allSets, visibleS
         return { header: presentCols, rows: tableRows };
     }; 
 
-    const allStatsGrouped: { [key: string]: any } = visibleSets.reduce((acc: { [key: string]: any }, setName: string) => {
-        if (!allSets[setName]) return acc;
-        acc[setName] = {}; // Initialize object for this set
-        if (['hiragana', 'katakana'].includes(setName)) {
-            acc[setName].basic = getStatsGridData(setName, 'basic');
-            acc[setName].dakuten = getStatsGridData(setName, 'dakuten');
-            acc[setName].handakuten = getStatsGridData(setName, 'handakuten');
-        } else {
-            acc[setName] = allSets[setName]
-                .map((charObj: Character) => {
-                    const stats = statsMap[charObj.char];
-                    const isAttempted = !!stats;
-                    return {
-                        ...charObj,
-                        stats,
-                        isAttempted,
-                        accuracy: isAttempted ? stats.accuracy : null,
-                        readingList: charObj.reading 
-                  ? (Array.isArray(charObj.reading) ? charObj.reading.join(' / ') : charObj.reading)
-                    : '',};
-                });
-        }
-        return acc;
-    }, {});
+    const allStatsGrouped = useMemo(() => {
+      return visibleSets.reduce((acc: { [key: string]: any }, setName: string) => {
+          if (!allSets[setName]) return acc;
+          acc[setName] = {}; // Initialize object for this set
+          if (['hiragana', 'katakana'].includes(setName)) {
+              acc[setName].basic = getStatsGridData(setName, 'basic');
+              acc[setName].dakuten = getStatsGridData(setName, 'dakuten');
+              acc[setName].handakuten = getStatsGridData(setName, 'handakuten');
+          } else {
+              acc[setName] = allSets[setName]
+                  .map((charObj: Character) => {
+                      const stats = statsMap[charObj.char];
+                      const isAttempted = !!stats;
+                      return {
+                          ...charObj,
+                          stats,
+                          isAttempted,
+                          accuracy: isAttempted ? stats.accuracy : null,
+                          readingList: charObj.reading 
+                    ? (Array.isArray(charObj.reading) ? charObj.reading.join(' / ') : charObj.reading)
+                      : '',};
+                  });
+          }
+          return acc;
+      }, {});
+    }, [visibleSets, allSets, statsMap]); // Aggiunto useMemo per performance
 
-    // --- JSX (Layout di Dashboard + Contenuto di StatsPanel) ---
+    
+    // --- NUOVA LOGICA PER I TAB ---
+    // Imposta lo stato per il tab attivo, basandosi sui set visibili
+    const [activeTab, setActiveTab] = useState(visibleSets[0]);
+
+    // Effetto per assicurarsi che un tab valido sia sempre selezionato
+    useEffect(() => {
+      if (!visibleSets.includes(activeTab)) {
+        setActiveTab(visibleSets[0]);
+      }
+    }, [visibleSets, activeTab]);
+    
+    // Prende i dati solo per il tab attualmente attivo
+    const activeSetName = activeTab || visibleSets[0];
+    const data = activeSetName ? allStatsGrouped[activeSetName] : null;
+
+
+    // --- JSX (Layout Modificato con i Tab) ---
     return (
         <div className="w-full p-8">
             <h1 className="text-4xl font-bold text-gray-800 mb-6">
               I tuoi Progressi
             </h1>
             
-            {/* Contenuto di StatsPanel (senza il wrapper/close button) */}
-            <div className="space-y-8">
-                {Object.entries(allStatsGrouped).map(([setName, data]) => (
-                    <div key={setName}>
-                        <h3 className="text-xl font-semibold capitalize mb-3 border-b pb-2 japanese-char">
-                            {setName.replace('_', ' ')}
-                        </h3>
-                        {['hiragana', 'katakana'].includes(setName) ? (
-                            <div className="space-y-6">
-                                {data.basic && data.basic.header.length > 0 && <StatsGrid title="Base" gridData={data.basic} />}
-                                {data.dakuten && data.dakuten.header.length > 0 && <StatsGrid title="Dakuten" gridData={data.dakuten} />}
-                                {data.handakuten && data.handakuten.header.length > 0 && <StatsGrid title="Handakuten" gridData={data.handakuten} />}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                                {Array.isArray(data) && data.map((item: any) => {
-    const style = getAccuracyStyle(item.accuracy, item.isAttempted);
-    const tooltip = item.isAttempted
-        ? `${item.char} (${item.readingList}): ${item.accuracy.toFixed(0)}% (${item.stats.correct}/${item.stats.attempts})`
-        : `${item.char} (${item.readingList}): Non tentato`;
-    return (
-        <div
-            key={item.char}
-            className={`p-3 text-center rounded-lg shadow-sm japanese-char 
-                        flex items-center justify-center`} // <-- MODIFICA QUI
-            title={tooltip}
-            style={style}
-        >
-            <div className="text-xl md:text-3xl font-bold">{item.char}</div>
+            {/* Messaggio se non ci sono dati */}
+            {history.length === 0 && (
+              <div className="p-6 bg-white rounded-lg shadow-md">
+                <h2 className="text-xl font-semibold mb-4">Nessun dato</h2>
+                <p className="text-gray-600">
+                  Completa qualche quiz nella sezione "Pratica" per vedere le tue statistiche qui!
+                </p>
+              </div>
+            )}
             
-            {/* Il div con le statistiche testuali è stato rimosso */}
-            
-        </div>
-    );
-})}
-                            </div>
-                        )}
+            {/* Contenitore stile "SettingsPanel" con Tab */}
+            {history.length > 0 && (
+              <div className="p-6 bg-white rounded-lg shadow-md mt-6">
+                
+                {/* 1. Barra dei Tab */}
+                <div className="flex border-b mb-4">
+                  {visibleSets.map((setName: string) => (
+                    <button
+                      key={setName}
+                      className={`py-2 px-4 capitalize japanese-char ${activeTab === setName ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
+                      onClick={() => setActiveTab(setName)}
+                    >
+                      {setName.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* 2. Contenuto del Tab Attivo */}
+                <div className="space-y-8">
+                  {data && (
+                    <div key={activeSetName}>
+                      {/* Non serve più il titolo <h3/> qui, è già nel tab */}
+                      
+                      {['hiragana', 'katakana'].includes(activeSetName) ? (
+                        <div className="space-y-6">
+                          {data.basic && data.basic.header.length > 0 && <StatsGrid title="Base" gridData={data.basic} />}
+                          {data.dakuten && data.dakuten.header.length > 0 && <StatsGrid title="Dakuten" gridData={data.dakuten} />}
+                          {data.handakuten && data.handakuten.header.length > 0 && <StatsGrid title="Handakuten" gridData={data.handakuten} />}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                          {Array.isArray(data) && data.map((item: any) => {
+                            const style = getAccuracyStyle(item.accuracy, item.isAttempted);
+                            const tooltip = item.isAttempted
+                                ? `${item.char} (${item.readingList}): ${item.accuracy.toFixed(0)}% (${item.stats.correct}/${item.stats.attempts})`
+                                : `${item.char} (${item.readingList}): Non tentato`;
+                            return (
+                                <div
+                                    key={item.char}
+                                    className={`p-3 text-center rounded-lg shadow-sm japanese-char 
+                                                flex items-center justify-center`}
+                                    title={tooltip}
+                                    style={style}
+                                >
+                                    <div className="text-xl md:text-3xl font-bold">{item.char}</div>
+                                </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                ))}
-            </div>
+                  )}
+                </div>
+              </div>
+            )}
         </div>
     );
 };
 
-// --- Componente Helper (copiato da StatsPanel) ---
+// --- Componente Helper (Invariato) ---
 interface StatsGridProps {
   title: string;
   gridData: {

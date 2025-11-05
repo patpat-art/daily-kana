@@ -1,5 +1,3 @@
-// (Questo è il NUOVO file HomeScreen)
-
 import React, { useState } from 'react';
 
 // 1. Importa i componenti
@@ -8,10 +6,17 @@ import { Dashboard } from './Dashboard';
 import { HomeQuizScreen } from './HomeQuizScreen';
 import { SettingsPanel } from '../components/SettingsPanel';
 
+// --- MODIFICA 1: Importa il tuo KanjiManager ---
+// (Assicurati che il nome file sia corretto e sia in 'src/screens/')
+import { KanjiManager } from './KanjiManager'; 
+
 // 2. Importa i tipi
 import type { SessionHistoryItem, CharacterSet, SelectionMap } from '../data/characters.ts';
 type Direction = 'charToRomaji' | 'romajiToChar';
-type ActiveView = 'dashboard' | 'quiz' | 'settings';
+
+// --- MODIFICA 2: Aggiungi 'kanjiManager' alla lista delle viste possibili ---
+// (Uso 'kanjiManager' come dall'errore, non 'kanji')
+type ActiveView = 'dashboard' | 'quiz' | 'settings' | 'kanjiManager';
 
 // 3. Definisci le props che questo componente riceve da App.tsx
 type HomeScreenProps = {
@@ -44,9 +49,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
   // Stato per la vista attiva, con 'quiz' come default
   const [activeView, setActiveView] = useState<ActiveView>('quiz');
 
+  // --- SOLUZIONE ERRORE (MODIFICA 3) ---
+  // Creiamo una funzione "wrapper" semplice che corrisponde
+  // al tipo atteso da Sidebar: (view: ActiveView) => void
+  const handleSetActiveView = (view: ActiveView) => {
+    setActiveView(view);
+  };
+  // --- FINE SOLUZIONE ERRORE ---
+
   return (
     // 5. Contenitore principale
-    // Gestisce la transizione quando il quiz INIZIA (passando da 'home' a 'quiz' nello stato di App.tsx)
     <div
       className={`flex w-full min-h-screen absolute top-0 left-0
                   transition-all duration-500 ease-in-out
@@ -59,7 +71,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
       {/* La Sidebar (sempre ridotta) */}
       <Sidebar
         activeView={activeView}
-        setActiveView={setActiveView}
+        // Ora passiamo la nostra funzione "wrapper"
+        setActiveView={handleSetActiveView}
       />
 
       {/* L'UNICA area contenuti. 
@@ -91,10 +104,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
             onPlayClick={props.handlePlayClick}
           />
         )}
+
+        {/* --- MODIFICA 4: Aggiungi il rendering per KanjiManager --- */}
+        {activeView === 'kanjiManager' && (
+          <KanjiManager />
+        )}
+
       </main>
-
-      {/* Il blocco <main> duplicato che era qui è stato RIMOSSO. */}
-
     </div>
   );
 };
