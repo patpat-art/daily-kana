@@ -156,26 +156,27 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ history, allSets, onClos
                             <div className="grid grid-cols-3 gap-3">
                                 {/* CORREZIONE: Assicura che 'data' sia un array prima di chiamare .map */}
                                 {Array.isArray(data) && data.map((item: any) => {
-                                    const style = getAccuracyStyle(item.accuracy, item.isAttempted);
-                                    const tooltip = item.isAttempted
-                                        ? `${item.char} (${item.romajiList}): ${item.accuracy.toFixed(0)}% (${item.stats.correct}/${item.stats.attempts})`
-                                        : `${item.char} (${item.romajiList}): Non tentato`;
-                                    return (
-                                        <div
-                                            key={item.char} // CORREZIONE: 'key' è una stringa
-                                            className={`p-3 text-center rounded-lg shadow-sm japanese-char`}
-                                            title={tooltip}
-                                            style={style}
-                                        >
-                                            <div className="text-3xl font-bold">{item.char}</div>
-                                            <div className="text-xs mt-1">
-                                                {item.isAttempted ? `${item.accuracy.toFixed(0)}% (${item.stats.attempts} att.)` : 'N/A'}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+            const style = getAccuracyStyle(item.accuracy, item.isAttempted);
+            const tooltip = item.isAttempted
+                ? `${item.char} (${item.romajiList || item.readingList}): ${item.accuracy.toFixed(0)}% (${item.stats.correct}/${item.stats.attempts})`
+                : `${item.char} (${item.romajiList || item.readingList}): Non tentato`;
+            return (
+                <div
+                    key={item.char}
+                    className={`p-3 text-center rounded-lg shadow-sm japanese-char 
+                                flex items-center justify-center`} // <-- MODIFICA QUI
+                    title={tooltip}
+                    style={style}
+                >
+                    <div className="text-3xl font-bold">{item.char}</div>
+                    
+                    {/* Il div con le statistiche testuali è stato rimosso */}
+                    
+                </div>
+            );
+        })}
+    </div>
+)}
                     </div>
                 ))}
             </div>

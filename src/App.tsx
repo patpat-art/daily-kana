@@ -732,6 +732,8 @@ useEffect(() => {
     handleInputChange={handleInputChange}
     manualCheckAnswer={manualCheckAnswer}
     inputColorClass={inputColorClass}
+    isKanjiQuestion={!!(currentQuestion && currentQuestion.charObj.reading)}
+    inputState={inputState}
   />
 </div>
 {/* --- FINE SCHERMATA QUIZ --- */}

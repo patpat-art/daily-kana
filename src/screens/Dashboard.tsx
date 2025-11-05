@@ -125,20 +125,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ history, allSets, visibleS
 
     // --- JSX (Layout di Dashboard + Contenuto di StatsPanel) ---
     return (
-        <div className="w-full h-full p-8 overflow-y-auto">
+        <div className="w-full p-8">
             <h1 className="text-4xl font-bold text-gray-800 mb-6">
               I tuoi Progressi
             </h1>
-            
-            {/* Messaggio se non ci sono dati */}
-            {history.length === 0 && (
-              <div className="p-6 bg-white rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold mb-4">Nessun dato</h2>
-                <p className="text-gray-600">
-                  Completa qualche quiz nella sezione "Pratica" per vedere le tue statistiche qui!
-                </p>
-              </div>
-            )}
             
             {/* Contenuto di StatsPanel (senza il wrapper/close button) */}
             <div className="space-y-8">
@@ -156,24 +146,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ history, allSets, visibleS
                         ) : (
                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                 {Array.isArray(data) && data.map((item: any) => {
-                                    const style = getAccuracyStyle(item.accuracy, item.isAttempted);
-                                    const tooltip = item.isAttempted
-                                     ? `${item.char} (${item.readingList}): ${item.accuracy.toFixed(0)}% (${item.stats.correct}/${item.stats.attempts})`
-                                       : `${item.char} (${item.readingList}): Non tentato`;
-                                    return (
-                                        <div
-                                            key={item.char}
-                                            className={`p-3 text-center rounded-lg shadow-sm japanese-char`}
-                                            title={tooltip}
-                                            style={style}
-                                        >
-                                            <div className="text-xl md:text-3xl font-bold">{item.char}</div>
-                                            <div className="text-xs mt-1">
-                                                {item.isAttempted ? `${item.accuracy.toFixed(0)}% (${item.stats.attempts} att.)` : 'N/A'}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+    const style = getAccuracyStyle(item.accuracy, item.isAttempted);
+    const tooltip = item.isAttempted
+        ? `${item.char} (${item.readingList}): ${item.accuracy.toFixed(0)}% (${item.stats.correct}/${item.stats.attempts})`
+        : `${item.char} (${item.readingList}): Non tentato`;
+    return (
+        <div
+            key={item.char}
+            className={`p-3 text-center rounded-lg shadow-sm japanese-char 
+                        flex items-center justify-center`} // <-- MODIFICA QUI
+            title={tooltip}
+            style={style}
+        >
+            <div className="text-xl md:text-3xl font-bold">{item.char}</div>
+            
+            {/* Il div con le statistiche testuali è stato rimosso */}
+            
+        </div>
+    );
+})}
                             </div>
                         )}
                     </div>
@@ -222,7 +213,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({ title, gridData }) => (
                                     style={style}
                                 >
                                     {charData.char}
-                                V</div>
+                                </div>
                             );
                         })}
                     </div>

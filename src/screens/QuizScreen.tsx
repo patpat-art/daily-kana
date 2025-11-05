@@ -1,4 +1,5 @@
 import React from 'react';
+import * as wanakana from 'wanakana';
 
 // 1. IMPORTA I COMPONENTI E LE ICONE CHE USERAI
 import { 
@@ -56,6 +57,8 @@ type QuizScreenProps = {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   manualCheckAnswer: () => void;
   inputColorClass: string;
+  isKanjiQuestion: boolean;
+  inputState: 'typing' | 'correct' | 'incorrect';
 };
 
 // 4. CREA IL COMPONENTE
@@ -95,7 +98,9 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
   userAnswer,
   handleInputChange,
   manualCheckAnswer,
-  inputColorClass
+  inputColorClass,
+  isKanjiQuestion,
+  inputState,
 }) => {
   
   // 6. AGGIUNGI IL RETURN
@@ -279,24 +284,74 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
                             </div>
                           )}
         
-                          {/* Input per DIGITAZIONE (charToRomaji) */}
-                          {isCharToRomajiTyping && !feedback && (
-                            <input
-                              type="text"
-                              value={userAnswer}
-                              onChange={handleInputChange}
-                              onKeyPress={(e) => { 
-                                  if (e.key === 'Enter' && (!isAutoSkipEnabled)) { 
-                                      handlePlayClick();
-                                      manualCheckAnswer(); 
-                                  }
-                              }}
-                              className={`w-full p-4 text-2xl border-4 rounded-xl mb-6 text-center focus:outline-none transition-all duration-200 shadow-inner ${inputColorClass}`}
-                              placeholder={"Type here..."}
-                              autoFocus
-                              disabled={!!feedback}
-                            />
-                          )}
+                          {/* --- BLOCCO INPUT CON LOGICA CONDIZIONALE --- */}
+        
+{/* CASO 1: È UNA DOMANDA KANJI (Usa il trucco della sovrapposizione) */}
+{isCharToRomajiTyping && !feedback && isKanjiQuestion && (
+  // Contenitore 'relative' per posizionare l'helper
+  <div className="relative w-full mb-6">
+    
+    {/* 1. L'HELPER VISUALE (SOVRAPPOSTO) */}
+    {/* Questo 'div' si siede sopra l'input e mostra l'Hiragana.
+        'pointer-events-none' fa sì che i click lo "attraversino"
+        e raggiungano l'input sottostante. */}
+    <div 
+      className={`absolute inset-0 p-4 text-2xl text-center 
+                 flex items-center justify-center 
+                 japanese-char pointer-events-none
+                 font-bold
+                 ${inputState === 'incorrect' ? 'text-red-500' : 'text-gray-900'}`}
+    >
+      {userAnswer.length === 0 
+        ? <span className="text-gray-400">Type here...</span> // Placeholder finto
+        : <span>{wanakana.toHiragana(userAnswer.toLowerCase(), { isIME: true } as any)}</span>
+      }
+    </div>
+
+    {/* 2. L'INPUT REALE (SOTTO, TRASPARENTE) */}
+    {/* L'utente digita qui. Il testo è trasparente,
+        ma il cursore (caret) è forzato a essere visibile. */}
+    <input
+      type="text"
+      value={userAnswer}
+      onChange={handleInputChange}
+      onKeyPress={(e) => { 
+          if (e.key === 'Enter' && (!isAutoSkipEnabled)) { 
+              handlePlayClick();
+              manualCheckAnswer(); 
+          }
+      }}
+      className={`w-full p-4 text-2xl border-4 rounded-xl text-center 
+                  focus:outline-none transition-all duration-200 
+                  shadow-inner font-bold ${inputColorClass} 
+                  text-transparent caret-gray-900`} // <-- TESTO TRASPARENTE
+      autoFocus
+      disabled={!!feedback}
+      placeholder="" // Placeholder rimosso, lo gestisce l'helper
+    />
+  </div>
+)}
+
+{/* CASO 2: È HIRAGANA/KATAKANA (Usa l'input normale, come prima) */}
+{isCharToRomajiTyping && !feedback && !isKanjiQuestion && (
+  <input
+    type="text"
+    value={userAnswer}
+    onChange={handleInputChange}
+    onKeyPress={(e) => { 
+        if (e.key === 'Enter' && (!isAutoSkipEnabled)) { 
+            handlePlayClick();
+            manualCheckAnswer(); 
+        }
+    }}
+    className={`w-full p-4 text-2xl border-4 rounded-xl mb-6 text-center 
+                focus:outline-none transition-all duration-200 
+                shadow-inner ${inputColorClass}`}
+    placeholder={"Type here..."}
+    autoFocus
+    disabled={!!feedback}
+  />
+)}
                           
                           {/* Pulsante "Controlla" per modalità DIGITAZIONE (se non auto-skip) */}
                           {isCharToRomajiTyping && !isAutoSkipEnabled && !isTimedMode && !feedback && (
