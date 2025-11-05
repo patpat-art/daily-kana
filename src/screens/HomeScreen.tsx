@@ -4,10 +4,9 @@ import React, { useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Dashboard } from './Dashboard';
 import { HomeQuizScreen } from './HomeQuizScreen';
-import { SettingsPanel } from '../components/SettingsPanel';
+import { SettingsPanel } from '../components/SettingsPanel'; // Assicurati che l'import sia corretto
 
 // --- MODIFICA 1: Importa il tuo KanjiManager ---
-// (Assicurati che il nome file sia corretto e sia in 'src/screens/')
 import { KanjiManager } from './KanjiManager'; 
 
 // 2. Importa i tipi
@@ -15,7 +14,6 @@ import type { SessionHistoryItem, CharacterSet, SelectionMap } from '../data/cha
 type Direction = 'charToRomaji' | 'romajiToChar';
 
 // --- MODIFICA 2: Aggiungi 'kanjiManager' alla lista delle viste possibili ---
-// (Uso 'kanjiManager' come dall'errore, non 'kanji')
 type ActiveView = 'dashboard' | 'quiz' | 'settings' | 'kanjiManager';
 
 // 3. Definisci le props che questo componente riceve da App.tsx
@@ -42,6 +40,10 @@ type HomeScreenProps = {
   resetProgress: () => Promise<void>;
   isAutoSkipEnabled: boolean;
   setIsAutoSkipEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  
+  // ⭐️ AGGIUNTA CHIAVE: Questa prop viene passata da App.tsx/file genitore
+  // per risolvere l'errore del passaggio a SettingsPanel.
+  allSetNames: string[]; 
 };
 
 
@@ -49,13 +51,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
   // Stato per la vista attiva, con 'quiz' come default
   const [activeView, setActiveView] = useState<ActiveView>('quiz');
 
-  // --- SOLUZIONE ERRORE (MODIFICA 3) ---
   // Creiamo una funzione "wrapper" semplice che corrisponde
   // al tipo atteso da Sidebar: (view: ActiveView) => void
   const handleSetActiveView = (view: ActiveView) => {
     setActiveView(view);
   };
-  // --- FINE SOLUZIONE ERRORE ---
 
   return (
     // 5. Contenitore principale
@@ -87,9 +87,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
           <Dashboard 
             history={props.sessionHistory}
             allSets={props.allSets}
-            // --- MODIFICA PER MOSTRARE TUTTI I PROGRESSI ---
-            // Prima era: visibleSets={props.visibleSets}
-            // Ora passiamo le chiavi di *tutti* i set, non solo quelli visibili/selezionati.
+            // MODIFICATO: Mostra tutti i set per i progressi
             visibleSets={Object.keys(props.allSets)}
           />
         )}
@@ -98,7 +96,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
         {activeView === 'settings' && (
           <SettingsPanel
             selectedModes={props.selectedSets}
-            allSetNames={Object.keys(props.allSets)}
             selectionMap={props.selectionMap}
             setSelectionMap={props.setSelectionMap}
             resetProgress={props.resetProgress}
@@ -106,6 +103,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
             isAutoSkipEnabled={props.isAutoSkipEnabled}
             setIsAutoSkipEnabled={props.setIsAutoSkipEnabled}
             onPlayClick={props.handlePlayClick}
+            // ⭐️ AGGIUNTA CHIAVE QUI: Passiamo la prop che abbiamo appena definito
+            allSetNames={props.allSetNames}
           />
         )}
 

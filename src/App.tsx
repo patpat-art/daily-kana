@@ -6,8 +6,13 @@ import type { Character, SessionHistoryItem, SelectionMap, Question, Feedback, M
 import { getInitialSelectedChars, speak } from './utils/helper';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { STORAGE_KEYS } from './data/constants';
-import { StatsPanel } from './components/StatsPanel';
-import { StudyPanel } from './components/StudyPanel';
+
+// --- CORREZIONE 1: Importa i componenti con export corretto ---
+// Assumiamo che StatsPanel e StudyPanel siano esportati come 'export const StatsPanel'
+// Se fossero esportati come default, l'errore 2305 non apparirebbe, ma l'errore suggerisce l'opposto.
+import { StatsPanel } from './components/StatsPanel'; 
+import { StudyPanel } from './components/StudyPanel'; 
+
 import { HomeScreen } from './screens/HomeScreen';
 import { QuizScreen } from './screens/QuizScreen';
 
@@ -621,6 +626,9 @@ useEffect(() => {
   const isCharToRomajiTyping = currentQuestion && currentQuestion.type === 'charToRomaji';
   const isRomajiToCharMultipleChoice = currentQuestion && currentQuestion.type === 'romajiToChar' && currentQuestion.options;
   
+  // Lista di tutti i nomi dei set
+  const allSetNames = Object.keys(CHARACTER_SETS); 
+  
   return (
     <div className="min-h-screen bg-gray-100 relative overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
       <style>
@@ -685,6 +693,9 @@ useEffect(() => {
   sessionHistory={sessionHistory}
   allSets={CHARACTER_SETS}
   visibleSets={selectedSets}
+
+  // --- CORREZIONE 2: Passa 'allSetNames' a HomeScreen ---
+  allSetNames={allSetNames} 
 
   // --- QUESTE SONO LE PROPS MANCANTI ---
   // Aggiungi questo blocco di props che
@@ -762,7 +773,8 @@ useEffect(() => {
         <StatsPanel 
             history={sessionHistory} 
             allSets={CHARACTER_SETS}
-            allSetNames={Object.keys(CHARACTER_SETS)}
+            // allSetNames è definito fuori dal return
+            allSetNames={allSetNames}
             onClose={() => {
               handlePlayClick();
               setShowStats(false);
@@ -784,7 +796,7 @@ useEffect(() => {
           visibleSets={selectedSets}
           onPlayClick={handlePlayClick} // Passa la funzione base
           isSpeechEnabled={isSpeechEnabled}
-          allSetNames={Object.keys(CHARACTER_SETS)}
+          allSetNames={allSetNames} // Passiamo la lista completa qui
           setIsSpeechEnabled={setIsSpeechEnabled}
           initAudio={initAudio}
         />
@@ -794,4 +806,3 @@ useEffect(() => {
     </div>
   );
 }
-

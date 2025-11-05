@@ -30,8 +30,8 @@ export const KanjiManager: React.FC = () => {
   const [sets, setSets] = useState<StudySet[]>([]);
   const [kanjiForSet, setKanjiForSet] = useState<LibraryKanji[]>([]); 
   const [currentSet, setCurrentSet] = useState<StudySet | null>(null);
-  const [loadingSets, setLoadingSets] = useState(true);
-  const [loadingKanji, setLoadingKanji] = useState(false);
+  const [, setLoadingSets] = useState(true);
+  const [, setLoadingKanji] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newKanjiChar, setNewKanjiChar] = useState('');
   const [newKanjiReading, setNewKanjiReading] = useState('');
