@@ -7,16 +7,13 @@ import { getInitialSelectedChars, speak } from './utils/helper';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { STORAGE_KEYS } from './data/constants';
 import { StatsPanel } from './components/StatsPanel';
-import { SettingsPanel } from './components/SettingsPanel';
 import { StudyPanel } from './components/StudyPanel';
 import { HomeScreen } from './screens/HomeScreen';
-import { HomeQuizScreen } from './screens/HomeQuizScreen';
 import { QuizScreen } from './screens/QuizScreen';
 
 // --- Componente Principale App ---
 export default function KanaKanjiTrainer() {
   const [screen, setScreen] = useState<'home' | 'quiz'>('home');
-  const [showSettings, setShowSettings] = useState(false);
   const [showStudyPanel, setShowStudyPanel] = useState(false);
   
   // Mappa di selezione Iniziale (Default)
@@ -585,7 +582,6 @@ useEffect(() => {
       setSessionHistory([]);
       setCurrentStreak(0);
       console.log('Progressi resettati con successo!');
-      setShowSettings(false);
     } catch (error) {
       console.error('Reset progressi fallito:', error);
     }
@@ -670,27 +666,35 @@ useEffect(() => {
       {/* Contenitore per le schermate */}
       <div className="relative w-full min-h-screen">
 
-        {/* --- Schermata Home --- */}
-        <HomeScreen
-          screen={screen}
-          handlePlayClick={handlePlayClick}
-          initAudio={initAudio}
-          isSoundEffectsEnabled={isSoundEffectsEnabled}
-          setIsSoundEffectsEnabled={setIsSoundEffectsEnabled}
-          setShowSettings={setShowSettings}
-          selectedSets={selectedSets}
-          toggleMode={toggleMode}
-          direction={direction}
-          setDirection={setDirection}
-          setShowStudyPanel={setShowStudyPanel}
-          startQuiz={startQuiz}
-          available={available}
-          isTimedMode={isTimedMode}
-          setIsTimedMode={setIsTimedMode}
-          sessionHistory={sessionHistory}
-          allSets={CHARACTER_SETS}
-          visibleSets={selectedSets}
-        />
+{/* --- Schermata Home --- */}
+<HomeScreen
+  screen={screen}
+  handlePlayClick={handlePlayClick}
+  initAudio={initAudio}
+  isSoundEffectsEnabled={isSoundEffectsEnabled}
+  setIsSoundEffectsEnabled={setIsSoundEffectsEnabled}
+  selectedSets={selectedSets}
+  toggleMode={toggleMode}
+  direction={direction}
+  setDirection={setDirection}
+  setShowStudyPanel={setShowStudyPanel}
+  startQuiz={startQuiz}
+  available={available}
+  isTimedMode={isTimedMode}
+  setIsTimedMode={setIsTimedMode}
+  sessionHistory={sessionHistory}
+  allSets={CHARACTER_SETS}
+  visibleSets={selectedSets}
+
+  // --- QUESTE SONO LE PROPS MANCANTI ---
+  // Aggiungi questo blocco di props che
+  // prima andavano a SettingsPanel
+  selectionMap={selectionMap}
+  setSelectionMap={setSelectionMap}
+  resetProgress={resetProgress}
+  isAutoSkipEnabled={isAutoSkipEnabled}
+  setIsAutoSkipEnabled={setIsAutoSkipEnabled}
+/>
 {/* --- Schermata Quiz --- */}
 <div className={`w-full min-h-screen p-4 md:p-8 absolute top-0 left-0
                 transition-all duration-500 ease-in-out
@@ -741,13 +745,12 @@ useEffect(() => {
       {/* --- Modali (Pannelli) --- */}
       
       {/* Backdrop per i pannelli */}
-      {(showStats || showSettings || showStudyPanel) && ( // <-- Aggiunto showStudyPanel
+      {(showStats || showStudyPanel) && ( // <-- Aggiunto showStudyPanel
         <div 
           className="fixed inset-0 bg-black opacity-30 z-40 transition-opacity duration-500 ease-in-out"
           onClick={() => {
             handlePlayClick();
             setShowStats(false);
-            setShowSettings(false);
             setShowStudyPanel(false); // <-- Aggiunto
           }} 
         />
@@ -768,24 +771,7 @@ useEffect(() => {
         />
       </div>
 
-      {/* Pannello Impostazioni (Scorrevole) */}
-      <div className={`fixed top-0 right-0 h-full w-full max-w-lg z-50 transition-transform duration-500 ease-in-out
-                      ${showSettings ? 'translate-x-0' : 'translate-x-full'}`}>
-        <SettingsPanel
-          onClose={() => {
-            setShowSettings(false);
-          }}
-          selectedModes={selectedSets}
-          selectionMap={selectionMap}
-          setSelectionMap={setSelectionMap}
-          resetProgress={resetProgress}
-          direction={direction}
-          isAutoSkipEnabled={isAutoSkipEnabled}
-          setIsAutoSkipEnabled={setIsAutoSkipEnabled}
-          onPlayClick={handlePlayClick}
-        />
-      </div>
-
+  
       {/* --- NUOVO: Pannello Modalità Studio (Scorrevole) --- */}
       <div className={`fixed top-0 right-0 h-full w-full max-w-lg z-50 transition-transform duration-500 ease-in-out
                       ${showStudyPanel ? 'translate-x-0' : 'translate-x-full'}`}>

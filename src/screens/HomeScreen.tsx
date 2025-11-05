@@ -2,24 +2,24 @@
 
 import React, { useState } from 'react';
 
-// 1. Importa i nuovi componenti che creeremo
+// 1. Importa i componenti
 import { Sidebar } from '../components/Sidebar';
-import { Dashboard } from './Dashboard'; // Creeremo questo
-import { HomeQuizScreen } from './HomeQuizScreen'; // Il tuo vecchio file, rinominato
-import type { SessionHistoryItem, CharacterSet } from '../data/characters';
+import { Dashboard } from './Dashboard';
+import { HomeQuizScreen } from './HomeQuizScreen';
+import { SettingsPanel } from '../components/SettingsPanel';
 
-// 2. Importa i tipi necessari (come prima)
+// 2. Importa i tipi
+import type { SessionHistoryItem, CharacterSet, SelectionMap } from '../data/characters.ts';
 type Direction = 'charToRomaji' | 'romajiToChar';
+type ActiveView = 'dashboard' | 'quiz' | 'settings';
 
 // 3. Definisci le props che questo componente riceve da App.tsx
-// (Sono le stesse identiche props del tuo file originale)
 type HomeScreenProps = {
   screen: 'home' | 'quiz';
   handlePlayClick: () => void;
   initAudio: () => void;
   isSoundEffectsEnabled: boolean;
   setIsSoundEffectsEnabled: (value: React.SetStateAction<boolean>) => void;
-  setShowSettings: (value: React.SetStateAction<boolean>) => void;
   selectedSets: string[];
   toggleMode: (modeName: string) => void;
   direction: Direction;
@@ -32,20 +32,21 @@ type HomeScreenProps = {
   sessionHistory: SessionHistoryItem[];
   allSets: CharacterSet;
   visibleSets: string[];
+  selectionMap: SelectionMap;
+  setSelectionMap: React.Dispatch<React.SetStateAction<SelectionMap>>;
+  resetProgress: () => Promise<void>;
+  isAutoSkipEnabled: boolean;
+  setIsAutoSkipEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-// Definiamo i tipi per le viste della sidebar
-type ActiveView = 'dashboard' | 'quiz';
 
 export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
-  // 4. Stato per gestire quale vista mostrare nell'area contenuti
-  const [activeView, setActiveView] = useState<ActiveView>('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Stato per la vista attiva, con 'quiz' come default
+  const [activeView, setActiveView] = useState<ActiveView>('quiz');
 
   return (
     // 5. Contenitore principale
-    // Applichiamo qui la logica di transizione che prima era nel tuo file.
-    // L'intero layout (sidebar + contenuti) scivolerà via quando inizia il quiz.
+    // Gestisce la transizione quando il quiz INIZIA (passando da 'home' a 'quiz' nello stato di App.tsx)
     <div
       className={`flex w-full min-h-screen absolute top-0 left-0
                   transition-all duration-500 ease-in-out
@@ -55,33 +56,45 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
                       : 'translate-x-0 opacity-100'
                   }`}
     >
-      {/* --- 6. La Sidebar --- */}
+      {/* La Sidebar (sempre ridotta) */}
       <Sidebar
-  activeView={activeView}
-  setActiveView={setActiveView}
-  isSidebarOpen={isSidebarOpen}
-  setIsSidebarOpen={setIsSidebarOpen}
-  handlePlayClick={props.handlePlayClick}
-  setShowSettings={props.setShowSettings}
-  selectedSets={props.selectedSets}
-/>
+        activeView={activeView}
+        setActiveView={setActiveView}
+      />
 
-      {/* --- 7. L'area Contenuti --- */}
-      <main className="flex-1 h-screen overflow-auto bg-gray-50">
-        {/* Renderizziamo la vista "Dashboard" (Progressi) */}
-        {/* Renderizziamo la vista "Dashboard" (Progressi) */}
-        {activeView === 'dashboard' && (
-             <Dashboard 
-                 history={props.sessionHistory}
-                  allSets={props.allSets}
-                  visibleSets={props.visibleSets}
-            />
-            )}
-
-        {/* Renderizziamo la vista "Quiz Setup" (il tuo vecchio file) */}
-        {/* Passiamo tutte le props ricevute da App.tsx */}
+      {/* L'UNICA area contenuti. 
+          Renderizza una sola vista alla volta. */}
+      <main className="flex-1 h-screen overflow-y-auto bg-gray-50">
+        
+        {/* Vista 1: Pratica (Default) */}
         {activeView === 'quiz' && <HomeQuizScreen {...props} />}
+
+        {/* Vista 2: Progressi */}
+        {activeView === 'dashboard' && (
+          <Dashboard 
+            history={props.sessionHistory}
+            allSets={props.allSets}
+            visibleSets={props.visibleSets}
+          />
+        )}
+
+        {/* Vista 3: Impostazioni */}
+        {activeView === 'settings' && (
+          <SettingsPanel
+            selectedModes={props.selectedSets}
+            selectionMap={props.selectionMap}
+            setSelectionMap={props.setSelectionMap}
+            resetProgress={props.resetProgress}
+            direction={props.direction}
+            isAutoSkipEnabled={props.isAutoSkipEnabled}
+            setIsAutoSkipEnabled={props.setIsAutoSkipEnabled}
+            onPlayClick={props.handlePlayClick}
+          />
+        )}
       </main>
+
+      {/* Il blocco <main> duplicato che era qui è stato RIMOSSO. */}
+
     </div>
   );
 };

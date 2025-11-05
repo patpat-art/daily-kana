@@ -4,7 +4,7 @@ import React from 'react';
 // (Assicurati che i percorsi siano corretti rispetto alla tua struttura)
 import { SetupCard } from '../components/SetupCard';
 import { DirectionToggle } from '../components/DirectionSelector';
-import { SettingsIcon, StudyIcon, StreakIcon, SoundOnIcon, SoundOffIcon } from '../components/Icons';
+import { StudyIcon, StreakIcon, SoundOnIcon, SoundOffIcon } from '../components/Icons';
 
 // 2. DEFINISCI I TIPI PER LE PROPS
 // (Puoi copiarli da App.tsx o definirli qui)
@@ -36,7 +36,6 @@ export const HomeQuizScreen: React.FC<HomeScreenProps> = ({
   initAudio,
   isSoundEffectsEnabled,
   setIsSoundEffectsEnabled,
-  setShowSettings,
   selectedSets,
   toggleMode,
   direction,
@@ -64,7 +63,6 @@ export const HomeQuizScreen: React.FC<HomeScreenProps> = ({
           >
             {isSoundEffectsEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
           </button>
-        
           
           <div className="flex flex-row space-x-4 md:space-x-8 mb-10 mt-10">
             <SetupCard char="あ" title="Hiragana" isSelected={selectedSets.includes('hiragana')} onClick={() => { handlePlayClick(); toggleMode('hiragana'); }} />

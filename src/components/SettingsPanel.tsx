@@ -6,7 +6,6 @@ import { ToggleAllIcon } from './Icons.tsx';
 
 // Props per SettingsPanel
 interface SettingsPanelProps {
-  onClose: () => void;
   selectedModes: string[];
   selectionMap: SelectionMap;
   setSelectionMap: React.Dispatch<React.SetStateAction<SelectionMap>>;
@@ -19,7 +18,6 @@ interface SettingsPanelProps {
 
 // --- Pannello Impostazioni (Modificato per scorrimento e bottone Toggle-All) ---
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ 
-  onClose, 
   selectedModes,
   selectionMap,
   setSelectionMap,
@@ -37,10 +35,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     }
   }, [selectedModes, activeTab]);
   
-  const handleClose = () => {
-      onPlayClick();
-      onClose();
-  }
 
   const activeSetName = activeTab || selectedModes[0];
   if (!activeSetName) return null;
@@ -103,17 +97,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     });
   };
 
-  return (
-    <div 
-      className="bg-white w-full h-full p-6 overflow-y-auto shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex justify-between items-center mb-2 border-b">
-        <h2 className="text-2xl font-bold capitalize">Settings</h2>
-        <button onClick={handleClose} className="text-gray-500 hover:text-gray-800 text-3xl font-light leading-none">
-          &times;
-        </button>
-      </div>
+return (
+  <div 
+    className="w-full p-8" // <-- Layout pulito (come Dashboard)
+    // onClick rimosso
+  >
+    <div className="flex justify-between items-center mb-2">
+      <h1 className="text-4xl font-bold text-gray-800">
+        Impostazioni
+      </h1>
+      {/* Pulsante 'X' rimosso */}
+    </div>
+    
+    {/* Contenuto di SettingsPanel */}
+    <div className="p-6 bg-white rounded-lg shadow-md mt-6">
       
       <div className="flex border-b mb-4">
         {selectedModes.map((modeName: string) => ( // CORREZIONE: Aggiunto tipo string
@@ -273,5 +270,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
       </div>
     </div>
+    </div> // <-- 1. AGGIUNGI QUESTO (Chiude il div "p-6 bg-white...")
+    
   );
 };
