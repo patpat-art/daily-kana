@@ -9,6 +9,7 @@ export type Character = {
   col?: number; // Opzionale per Kanji
   type: string;
   meaning?: string;
+  reading?: string | string[];
 };
 
 export type CharacterSet = {
@@ -45,6 +46,7 @@ export type Question = {
 export type Feedback = {
   isCorrect: boolean;
   correctAnswer: string;
+  correctReading?: string;
 };
 
 export type MistakeData = {
@@ -248,15 +250,15 @@ export const CHARACTER_SETS: CharacterSet = {
     { char: 'ポ', romaji: 'po', category: 'p-series', row: 'p', col: 5, type: 'handakuten' },
   ],
   kanji_basic: [
-    { char: '人', romaji: ['jin', 'nin', 'hito'], meaning: 'persona', category: 'basic', type: 'basic' },
-    { char: '日', romaji: ['nichi', 'hi', 'ka'], meaning: 'giorno/sole', category: 'basic', type: 'basic' },
-    { char: '月', romaji: ['getsu', 'tsuki'], meaning: 'mese/luna', category: 'basic', type: 'basic' },
-    { char: '火', romaji: ['ka', 'hi'], meaning: 'fuoco', category: 'basic', type: 'basic' },
-    { char: '水', romaji: ['sui', 'mizu'], meaning: 'acqua', category: 'basic', type: 'basic' },
-    { char: '木', romaji: ['moku', 'ki'], meaning: 'albero/legno', category: 'basic', type: 'basic' },
-    { char: '金', romaji: ['kin', 'kane'], meaning: 'oro/denaro', category: 'basic', type: 'basic' },
-    { char: '土', romaji: ['do', 'tsuchi'], meaning: 'terra/suolo', category: 'basic', type: 'basic' },
-  ]
+  { char: '人', romaji: ['jin', 'nin', 'hito'], reading: ['じん', 'にん', 'ひと'], meaning: 'persona', category: 'basic', type: 'basic' },
+  { char: '日', romaji: ['nichi', 'hi', 'ka'], reading: ['にち', 'ひ', 'か'], meaning: 'giorno/sole', category: 'basic', type: 'basic' },
+  { char: '月', romaji: ['getsu', 'tsuki'], reading: ['げつ', 'つき'], meaning: 'mese/luna', category: 'basic', type: 'basic' },
+  { char: '火', romaji: ['ka', 'hi'], reading: ['か', 'ひ'], meaning: 'fuoco', category: 'basic', type: 'basic' },
+  { char: '水', romaji: ['sui', 'mizu'], reading: ['すい', 'みず'], meaning: 'acqua', category: 'basic', type: 'basic' },
+  { char: '木', romaji: ['moku', 'ki'], reading: ['もく', 'き'], meaning: 'albero/legno', category: 'basic', type: 'basic' },
+  { char: '金', romaji: ['kin', 'kane'], reading: ['きん', 'かね'], meaning: 'oro/denaro', category: 'basic', type: 'basic' },
+  { char: '土', romaji: ['do', 'tsuchi'], reading: ['ど', 'つち'], meaning: 'terra/suolo', category: 'basic', type: 'basic' },
+]
 };
 
 // --- Categorie (ora usate solo per il layout delle impostazioni) ---

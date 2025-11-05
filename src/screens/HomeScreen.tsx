@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Dashboard } from './Dashboard'; // Creeremo questo
 import { HomeQuizScreen } from './HomeQuizScreen'; // Il tuo vecchio file, rinominato
+import type { SessionHistoryItem, CharacterSet } from '../data/characters';
 
 // 2. Importa i tipi necessari (come prima)
 type Direction = 'charToRomaji' | 'romajiToChar';
@@ -28,6 +29,9 @@ type HomeScreenProps = {
   available: { length: number };
   isTimedMode: boolean;
   setIsTimedMode: (value: React.SetStateAction<boolean>) => void;
+  sessionHistory: SessionHistoryItem[];
+  allSets: CharacterSet;
+  visibleSets: string[];
 };
 
 // Definiamo i tipi per le viste della sidebar
@@ -54,9 +58,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
       <Sidebar activeView={activeView} setActiveView={setActiveView} />
 
       {/* --- 7. L'area Contenuti --- */}
-      <main className="flex-1 overflow-auto bg-gray-50 h-full">
+      <main className="flex-1 h-screen overflow-auto bg-gray-50">
         {/* Renderizziamo la vista "Dashboard" (Progressi) */}
-        {activeView === 'dashboard' && <Dashboard />}
+        {/* Renderizziamo la vista "Dashboard" (Progressi) */}
+        {activeView === 'dashboard' && (
+             <Dashboard 
+                 history={props.sessionHistory}
+                  allSets={props.allSets}
+                  visibleSets={props.visibleSets}
+            />
+            )}
 
         {/* Renderizziamo la vista "Quiz Setup" (il tuo vecchio file) */}
         {/* Passiamo tutte le props ricevute da App.tsx */}

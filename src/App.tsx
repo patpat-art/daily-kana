@@ -80,7 +80,7 @@ export default function KanaKanjiTrainer() {
     }
     return null;
   });
-  
+
 // --- Sanificazione Dati Avvio ---
   // Questo useEffect viene eseguito una sola volta al caricamento
   // per pulire dati obsoleti da localStorage.
@@ -316,8 +316,21 @@ export default function KanaKanjiTrainer() {
         isCorrect = currentQuestion.correctAnswer === attemptedAnswer;
         correctAnswer = currentQuestion.correctAnswer as string;
       }
-      return { isCorrect, correctAnswer };
-  }, [currentQuestion]); // Aggiunta dipendenza
+      
+      // Ora creiamo il campo 'correctReading' (hiragana)
+    let correctReading: string | undefined = undefined;
+    
+    // Controlliamo se il 'charObj' della domanda corrente HA il campo 'reading'
+    if (currentQuestion.charObj.reading) {
+       correctReading = Array.isArray(currentQuestion.charObj.reading) 
+         ? currentQuestion.charObj.reading.join(' / ') 
+         : currentQuestion.charObj.reading;
+    }
+    
+    // Ora restituiamo TUTTO (incluso il nuovo campo)
+    return { isCorrect, correctAnswer, correctReading };
+    
+}, [currentQuestion]); // Aggiunta dipendenza
 
   const generateQuestion = useCallback(() => {
     if (timerRef.current) {
@@ -346,16 +359,18 @@ export default function KanaKanjiTrainer() {
         charObj
       };
     } else { // romajiToChar
-      const romaji = Array.isArray(charObj.romaji) ? charObj.romaji[0] : charObj.romaji;
-      question = {
-        prompt: romaji,
-        correctAnswer: charObj.char,
-        type: 'romajiToChar',
-        charObj,
-        options: generateMultipleChoiceOptions(charObj, allChars) // Forza sempre le opzioni
-      };
+      const readings = charObj.reading ? (Array.isArray(charObj.reading) ? charObj.reading : [charObj.reading]) : [];
+      const readingPrompt = readings.length > 0 ? readings[0] : ''; // Usa il primo reading
+
+  question = {
+    prompt: readingPrompt, // <-- USA IL READING COME PROMPT
+    correctAnswer: charObj.char,
+    type: 'romajiToChar',
+    charObj,
+    options: generateMultipleChoiceOptions(charObj, allChars)
+  };
       if (isSpeechEnabled) {
-          speak(romaji);
+          speak(readingPrompt || charObj.char ); // Pronuncia il reading o il carattere
       }
     }
     
@@ -385,11 +400,12 @@ export default function KanaKanjiTrainer() {
     }
 
     // CORREZIONE: 'checkAnswer' ora è una dipendenza
-    const { correctAnswer } = checkAnswer(charObj, attemptedAnswer);
-    setFeedback({
-        isCorrect: false,
-        correctAnswer
-    });
+    const { correctAnswer, correctReading } = checkAnswer(charObj, attemptedAnswer); 
+setFeedback({
+    isCorrect: false,
+    correctAnswer,
+    correctReading 
+});
     setTimeout(() => {
         generateQuestion();
     }, 800); 
@@ -517,7 +533,7 @@ useEffect(() => {
     }
 
     const { charObj } = currentQuestion;
-    const { isCorrect, correctAnswer } = checkAnswer(charObj, userAnswer);
+    const { isCorrect, correctAnswer, correctReading } = checkAnswer(charObj, userAnswer);
     
     logAnswer(charObj, userAnswer, isCorrect);
     setCardState(isCorrect ? 'correct' : 'incorrect');
@@ -530,7 +546,8 @@ useEffect(() => {
 
     setFeedback({
       isCorrect,
-      correctAnswer
+      correctAnswer,
+      correctReading
     });
     
     if (isSpeechEnabled) {
@@ -670,6 +687,9 @@ useEffect(() => {
           available={available}
           isTimedMode={isTimedMode}
           setIsTimedMode={setIsTimedMode}
+          sessionHistory={sessionHistory}
+          allSets={CHARACTER_SETS}
+          visibleSets={selectedSets}
         />
 {/* --- Schermata Quiz --- */}
 <div className={`w-full min-h-screen p-4 md:p-8 absolute top-0 left-0

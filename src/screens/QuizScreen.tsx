@@ -222,11 +222,14 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
                                     ✓ Corretto!
                                   </div>
                               )}
-                              {!feedback.isCorrect && (
-                                 <div className="text-xl mb-6 text-gray-700">
-                                   Risposta corretta: <span className="font-bold text-gray-900">{feedback.correctAnswer}</span>
-                                 </div>
-                              )}
+{!feedback.isCorrect && (
+   <div className="text-xl mb-6 text-gray-700">
+     Risposta corretta: 
+     <span className="font-bold text-gray-900 japanese-char">
+       {feedback.correctReading || feedback.correctAnswer}
+     </span>
+   </div>
+)}
                               
                               {/* Pulsante 'Prossima' solo se non in auto-skip e non in modalità a tempo */}
                               {(!isAutoSkipEnabled && !isTimedMode) && (
