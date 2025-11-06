@@ -2,12 +2,12 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 
 // Importiamo Tipi e Valori
-import type { 
-  Character, 
-  SelectionMap, 
-  StudySet, 
-  DynamicKanjiMap, 
-  LibraryKanji 
+import type {
+  Character,
+  SelectionMap,
+  StudySet,
+  DynamicKanjiMap,
+  LibraryKanji
 } from '../data/characters.ts';
 import { CATEGORIES } from '../data/characters.ts'; // Valore
 
@@ -25,7 +25,7 @@ interface SettingsScreenProps {
   isAutoSkipEnabled: boolean;
   setIsAutoSkipEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onPlayClick: () => void;
-  
+
   // Dati separati
   dynamicSets: StudySet[];
   dynamicKanjiMap: DynamicKanjiMap;
@@ -35,7 +35,7 @@ interface SettingsScreenProps {
 type MainTab = 'hiragana' | 'katakana' | 'kanji';
 
 // --- Pannello Impostazioni ---
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ 
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   selectedModes,
   selectionMap,
   setSelectionMap,
@@ -47,7 +47,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   dynamicSets,
   dynamicKanjiMap
 }) => {
-  
+
   // --- STATI INTERNI PER LA NAVIGAZIONE ---
   const [activeTab, setActiveTab] = useState<MainTab>('hiragana');
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
@@ -62,10 +62,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       setActiveTab('kanji');
     }
   }, [selectedModes]);
-  
-  
+
+
   // --- LOGICA DI SELEZIONE AGGIORNATA ---
-  
+
   const toggleChar = (key: string, setName: string) => {
     onPlayClick();
     setSelectionMap(prev => {
@@ -88,7 +88,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       const newSet = new Set(newMap[setName] || []);
       const validChars = charGroup.filter((c): c is Character => c !== null).map(c => c.char);
       if (validChars.length === 0) return prev;
-      
+
       const allSelected = validChars.every(char => newSet.has(char));
       if (allSelected) {
         validChars.forEach(char => newSet.delete(char));
@@ -99,7 +99,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       return newMap;
     });
   };
-  
+
   const handleToggleAllStatic = (gridData: { rows: { chars: (Character | null)[] }[] }, setName: string) => {
     onPlayClick();
     setSelectionMap(prev => {
@@ -107,15 +107,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       const newSet = new Set(newMap[setName] || []);
       const allCharsInGrid = gridData.rows.flatMap(row => row.chars).filter((c): c is Character => c !== null).map(c => c.char);
       if (allCharsInGrid.length === 0) return prev;
-      
+
       const allSelected = allCharsInGrid.every(char => newSet.has(char));
-      
+
       if (allSelected) {
         allCharsInGrid.forEach(char => newSet.delete(char));
       } else {
         allCharsInGrid.forEach(char => newSet.add(char));
       }
-      
+
       newMap[setName] = newSet;
       return newMap;
     });
@@ -129,15 +129,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       // Usiamo 'id' come chiave per i kanji
       const allKeys = kanjiList.map(k => k.id).filter(Boolean) as string[];
       if (allKeys.length === 0) return prev;
-      
+
       const allSelected = allKeys.every(key => newSet.has(key));
-      
+
       if (allSelected) {
         allKeys.forEach(key => newSet.delete(key));
       } else {
         allKeys.forEach(key => newSet.add(key));
       }
-      
+
       newMap[setName] = newSet;
       return newMap;
     });
@@ -148,7 +148,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   // 1. Griglia STATICA (Hiragana/Katakana)
   const renderStaticSet = (setName: 'hiragana' | 'katakana') => {
     const categoriesForSet = CATEGORIES[setName] || [];
-    
+
     return (
       <div className="space-y-6">
         {categoriesForSet.map(cat => {
@@ -159,8 +159,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             <div key={cat.id}>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-md font-semibold text-gray-600">{cat.name}</h3>
-                <button 
-                  onClick={() => handleToggleAllStatic(gridData, setName)} 
+                <button
+                  onClick={() => handleToggleAllStatic(gridData, setName)}
                   className="text-gray-500 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100"
                   title="Seleziona/Deseleziona Tutti"
                 >
@@ -171,8 +171,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 <div className="grow flex flex-col space-y-1">
                   <div className="grid" style={{ gridTemplateColumns: `repeat(${gridData.header.length}, minmax(0, 1fr))` }}>
                     {gridData.header.map((col, colIndex) => (
-                      <button 
-                        key={col.id} 
+                      <button
+                        key={col.id}
                         onClick={() => toggleStaticGroup(gridData.rows.map(r => r.chars[colIndex]), setName)}
                         className="w-full text-center py-1 text-sm font-medium text-gray-500 rounded-md hover:bg-gray-200"
                         title={`Seleziona/Deseleziona colonna ${col.label}`}
@@ -194,10 +194,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                             onClick={() => toggleChar(charData.char, setName)}
                             className={`w-full h-12 flex items-center justify-center text-xl font-bold rounded-sm border-2
                                         transition-all japanese-char
-                                        ${isSelected 
-                                          ? 'bg-blue-600 text-white border-blue-600' 
-                                          : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'
-                                        }`}
+                                        ${isSelected
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'
+                              }`}
                           >
                             {charData.char}
                           </button>
@@ -207,16 +207,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   ))}
                 </div>
                 <div className="flex flex-col space-y-1" style={{ paddingTop: '28px' }}>
-                   {gridData.rows.map(row => (
-                       <button 
-                          key={row.id} 
-                          onClick={() => toggleStaticGroup(row.chars, setName)}
-                          className="w-8 h-12 flex items-center justify-center font-bold text-gray-600 text-xs rounded-md hover:bg-gray-200"
-                          title={`Seleziona/Deseleziona riga ${row.label.toUpperCase()}`}
-                       >
-                           {row.label.toUpperCase()}
-                       </button>
-                   ))}
+                  {gridData.rows.map(row => (
+                    <button
+                      key={row.id}
+                      onClick={() => toggleStaticGroup(row.chars, setName)}
+                      className="w-8 h-12 flex items-center justify-center font-bold text-gray-600 text-xs rounded-md hover:bg-gray-200"
+                      title={`Seleziona/Deseleziona riga ${row.label.toUpperCase()}`}
+                    >
+                      {row.label.toUpperCase()}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -236,12 +236,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               const kanjiList = dynamicKanjiMap[set.id] || [];
               const allKeys = kanjiList.map(k => k.id);
               const selectedKeys = selectionMap[set.id] || new Set();
-              
+
               const allSelected = allKeys.length > 0 && allKeys.every(key => selectedKeys.has(key));
               const someSelected = !allSelected && allKeys.some(key => selectedKeys.has(key));
 
               // --- ⭐ INIZIO MODIFICA ESTETICA ---
-              
+
               let cardStyle = '';
               let editIconStyle = 'text-gray-500 hover:text-blue-700'; // Default (su sfondo bianco)
 
@@ -274,7 +274,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   {/* Bottone Modifica (con stile dinamico) */}
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); 
+                      e.stopPropagation();
                       onPlayClick();
                       setEditingSetId(set.id);
                     }}
@@ -303,30 +303,30 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <div key={setId}>
           {/* Header con bottone "Indietro" */}
           <div className="flex justify-between items-center mb-4">
-            <button 
+            <button
               onClick={() => setEditingSetId(null)}
               className="flex items-center text-gray-500 hover:text-blue-600"
             >
               <ArrowLeftIcon />
               <span className="ml-1">Tutti i Set</span>
             </button>
-            <button 
-              onClick={() => handleToggleAllDynamic(kanjiList, setId)} 
+            <button
+              onClick={() => handleToggleAllDynamic(kanjiList, setId)}
               className="text-gray-500 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100"
               title="Seleziona/Deseleziona Tutti"
             >
               <ToggleAllIcon />
             </button>
           </div>
-          
+
           <h3 className="text-xl font-semibold text-gray-800 capitalize japanese-char mb-4">{set?.name}</h3>
-          
+
           {/* Griglia Densa (come Hiragana/Katakana) */}
           <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-y-2">
             {kanjiList.map((charObj) => {
               const key = charObj.id as string;
               const isSelected = selectionMap[setId]?.has(key);
-              
+
               return (
                 <button
                   key={key}
@@ -334,10 +334,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   title={`${charObj.reading} (${charObj.meaning})`}
                   className={`w-full h-12 flex items-center justify-center text-xl font-bold rounded-sm border-2
                               transition-all japanese-char
-                              ${isSelected 
-                                ? 'bg-blue-600 text-white border-blue-600' 
-                                : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'
-                              }`}
+                              ${isSelected
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-gray-200 text-gray-700 border-transparent hover:bg-gray-300'
+                    }`}
                 >
                   {charObj.char}
                 </button>
@@ -348,74 +348,74 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       </div>
     );
   };
-  
+
   // --- RENDER PRINCIPALE ---
 
-return (
-  <div 
-    className="w-full p-8"
-  >
-    {/* Contenuto di SettingsPanel */}
-    <div className="p-6 bg-white rounded-lg shadow-md mt-6">
+  return (
+    <div
+      className="w-full p-8"
+    >
+      {/* Contenuto di SettingsPanel */}
+      <div className="p-6 bg-white rounded-lg shadow-md mt-6">
 
-      {/* 1. TAB (Statici) */}
-      <div className="flex border-b mb-4">
-        <button
-          key="hiragana"
-          className={`py-2 px-4 capitalize japanese-char ${activeTab === 'hiragana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
-          onClick={() => { onPlayClick(); setActiveTab('hiragana'); setEditingSetId(null); }}
-        >
-          Hiragana
-        </button>
-        <button
-          key="katakana"
-          className={`py-2 px-4 capitalize japanese-char ${activeTab === 'katakana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
-          onClick={() => { onPlayClick(); setActiveTab('katakana'); setEditingSetId(null); }}
-        >
-          Katakana
-        </button>
-        <button
-          key="kanji"
-          className={`py-2 px-4 capitalize japanese-char ${activeTab === 'kanji' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
-          onClick={() => { onPlayClick(); setActiveTab('kanji'); }}
-        >
-          Kanji
-        </button>
-      </div>
-      
-      {/* 2. CONTENUTO TAB (Logica condizionale) */}
-      <div className="mt-6">
-        {activeTab === 'hiragana' && renderStaticSet('hiragana')}
-        {activeTab === 'katakana' && renderStaticSet('katakana')}
-        {activeTab === 'kanji' && (
-          editingSetId ? renderKanjiDetailGrid(editingSetId) : renderKanjiSetMenu()
-        )}
-      </div>
-      
-      {/* 3. OPZIONI (Invariato) */}
-      <div className="border-t pt-6 mt-6 space-y-6">
-        {direction === 'charToRomaji' && (
+        {/* 1. TAB (Statici) */}
+        <div className="flex border-b mb-4">
+          <button
+            key="hiragana"
+            className={`py-2 px-4 capitalize japanese-char ${activeTab === 'hiragana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
+            onClick={() => { onPlayClick(); setActiveTab('hiragana'); setEditingSetId(null); }}
+          >
+            Hiragana
+          </button>
+          <button
+            key="katakana"
+            className={`py-2 px-4 capitalize japanese-char ${activeTab === 'katakana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
+            onClick={() => { onPlayClick(); setActiveTab('katakana'); setEditingSetId(null); }}
+          >
+            Katakana
+          </button>
+          <button
+            key="kanji"
+            className={`py-2 px-4 capitalize japanese-char ${activeTab === 'kanji' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
+            onClick={() => { onPlayClick(); setActiveTab('kanji'); }}
+          >
+            Kanji
+          </button>
+        </div>
+
+        {/* 2. CONTENUTO TAB (Logica condizionale) */}
+        <div className="mt-6">
+          {activeTab === 'hiragana' && renderStaticSet('hiragana')}
+          {activeTab === 'katakana' && renderStaticSet('katakana')}
+          {activeTab === 'kanji' && (
+            editingSetId ? renderKanjiDetailGrid(editingSetId) : renderKanjiSetMenu()
+          )}
+        </div>
+
+        {/* 3. OPZIONI (Invariato) */}
+        <div className="border-t pt-6 mt-6 space-y-6">
+          {direction === 'charToRomaji' && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-3">Training Options</h3>
+              <label className="flex items-center justify-between cursor-pointer p-2 rounded-md hover:bg-gray-50">
+                <span className="text-sm text-gray-700">Auto-Skip</span>
+                <input
+                  type="checkbox"
+                  checked={isAutoSkipEnabled}
+                  onChange={(e) => {
+                    onPlayClick();
+                    setIsAutoSkipEnabled(e.target.checked)
+                  }}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                />
+              </label>
+              <p className="text-xs text-gray-500 mt-2 pl-2">If enabled, it skips to the next question as soon as you type the correct answer.</p>
+            </div>
+          )}
+
           <div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-3">Training Options</h3>
-            <label className="flex items-center justify-between cursor-pointer p-2 rounded-md hover:bg-gray-50">
-              <span className="text-sm text-gray-700">Auto-Skip</span>
-              <input
-                type="checkbox"
-                checked={isAutoSkipEnabled}
-                onChange={(e) => {
-                  onPlayClick();
-                  setIsAutoSkipEnabled(e.target.checked)
-                }}
-                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-              />
-            </label>
-            <p className="text-xs text-gray-500 mt-2 pl-2">If enabled, it skips to the next question as soon as you type the correct answer.</p>
-          </div>
-        )}
-      
-        <div>
-           <h3 className="text-lg font-semibold text-gray-700 mb-3">Data Management</h3>
-           <button
+            <h3 className="text-lg font-semibold text-gray-700 mb-3">Data Management</h3>
+            <button
               onClick={() => {
                 onPlayClick();
                 resetProgress();
@@ -424,10 +424,10 @@ return (
             >
               Reset Progress...
             </button>
+          </div>
         </div>
       </div>
     </div>
-    </div> 
-    
+
   );
 };
