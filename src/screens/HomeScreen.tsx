@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 
 import { Sidebar } from '../components/Sidebar';
 import { Dashboard } from './Dashboard';
-import { KanjiManager } from './KanjiManager'; 
+import { KanjiManager } from './KanjiManager';
 import { HomeQuizScreen } from './HomeQuizScreen';
-import { SettingsPanel } from '../components/SettingsPanel';
+import { SettingsScreen } from './SettingsScreen';
 
 // 1. Importa i tipi necessari
-import type { SessionHistoryItem, CharacterSet, SelectionMap } from '../data/characters.ts';
+import type {
+  SessionHistoryItem,
+  CharacterSet,
+  SelectionMap,
+  StudySet,
+  DynamicKanjiMap
+} from '../data/characters.ts';
 type Direction = 'charToRomaji' | 'romajiToChar';
 
 // 2. Definisci il tipo per le viste attive
@@ -30,14 +36,21 @@ type HomeScreenProps = {
   isTimedMode: boolean;
   setIsTimedMode: (value: React.SetStateAction<boolean>) => void;
   sessionHistory: SessionHistoryItem[];
-  allSets: CharacterSet;
+  allSets: CharacterSet; // <-- Contiene la mappa unificata (per Quiz/Statistiche)
   visibleSets: string[];
   selectionMap: SelectionMap;
   setSelectionMap: React.Dispatch<React.SetStateAction<SelectionMap>>;
   resetProgress: () => Promise<void>;
   isAutoSkipEnabled: boolean;
   setIsAutoSkipEnabled: React.Dispatch<React.SetStateAction<boolean>>;
-  allSetNames: string[]; 
+  allSetNames: string[];
+
+  // Props separate per SettingsScreen
+  dynamicSets: StudySet[];
+  dynamicKanjiMap: DynamicKanjiMap;
+  
+  // ⭐ AGGIUNTA: Prop per la sincronizzazione dei dati
+  refreshDynamicData: () => Promise<void>; 
 };
 
 
@@ -55,51 +68,65 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
     <div
       className={`flex w-full min-h-screen absolute top-0 left-0
                   transition-all duration-500 ease-in-out
-                  ${
-                    props.screen === 'quiz'
-                      ? '-translate-x-full opacity-70'
-                      : 'translate-x-0 opacity-100'
-                  }`}
+                  ${props.screen === 'quiz'
+          ? '-translate-x-full opacity-70'
+          : 'translate-x-0 opacity-100'
+        }`}
     >
 
       <Sidebar
         activeView={activeView}
-
         setActiveView={handleSetActiveView}
+        initAudio={props.initAudio}
+        isSoundEffectsEnabled={props.isSoundEffectsEnabled}
+        setIsSoundEffectsEnabled={props.setIsSoundEffectsEnabled}
+        handlePlayClick={props.handlePlayClick}
       />
 
       <main className="flex-1 h-screen overflow-y-auto bg-gray-50">
-        
+
         {/* Vista 1: Pratica (Default) */}
         {activeView === 'quiz' && <HomeQuizScreen {...props} />}
 
         {/* Vista 2: Progressi */}
         {activeView === 'dashboard' && (
-          <Dashboard 
+          <Dashboard
             history={props.sessionHistory}
             allSets={props.allSets}
             visibleSets={Object.keys(props.allSets)}
+            allSetNames={props.allSetNames}
+            onPlayClick={props.handlePlayClick}
+            dynamicSets={props.dynamicSets}
+            dynamicKanjiMap={props.dynamicKanjiMap}
+            onClose={() => { }}
           />
         )}
 
         {/* Vista 3: Impostazioni */}
         {activeView === 'settings' && (
-          <SettingsPanel
+          <SettingsScreen
+            // Props di selezione (invariate)
             selectedModes={props.selectedSets}
             selectionMap={props.selectionMap}
             setSelectionMap={props.setSelectionMap}
+
+            // Props di opzioni (invariate)
             resetProgress={props.resetProgress}
             direction={props.direction}
             isAutoSkipEnabled={props.isAutoSkipEnabled}
             setIsAutoSkipEnabled={props.setIsAutoSkipEnabled}
             onPlayClick={props.handlePlayClick}
-            allSetNames={props.allSetNames}
+
+            // Props dei Dati (Modificate)
+            dynamicSets={props.dynamicSets}
+            dynamicKanjiMap={props.dynamicKanjiMap}
           />
         )}
-
+        
         {/* Vista 4: Gestione Kanji */}
         {activeView === 'kanjiManager' && (
-          <KanjiManager />
+          // ⭐ AGGIUNTA: Passiamo la funzione di refresh a KanjiManager
+          <KanjiManager refreshDynamicData={props.refreshDynamicData} />
         )}
 
       </main>

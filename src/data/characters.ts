@@ -1,21 +1,31 @@
 // --- Tipi di Dati (per TypeScript) ---
+
+// Importiamo i tipi dal servizio KANJI, perché i nostri tipi dinamici dipendono da questi.
+// Assicurati che il percorso a 'kanjiService' sia corretto da QUESTO file (data/characters.ts)
+// Potrebbe essere '../services/kanjiService'
+import type { LibraryKanji, StudySet } from '../services/kanjiService'; 
+
 export type Direction = 'charToRomaji' | 'romajiToChar';
+
+// ⭐ NUOVO TIPO UNIFICATO (usato per i quiz in App.tsx)
+// Questo tipo è la fusione di Character statico + LibraryKanji dinamico
+export type AnyCharacter = Character | LibraryKanji;
 
 export type Character = {
   char: string;
   romaji: string | string[];
-  category: string;
-  row?: string; // Opzionale per Kanji
-  col?: number; // Opzionale per Kanji
+  category: string | { id: string, name: string }; // ⭐ AGGIORNATO per gestire le categorie dinamiche
+  row?: string; // ⭐ RESO OPZIONALE (Solo per Hiragana/Katakana)
+  col?: number; // ⭐ RESO OPZIONALE (Solo per Hiragana/Katakana)
   type: string;
   meaning?: string;
   reading?: string | string[];
+  id?: string; // ⭐ AGGIUNTO id per i kanji dinamici
 };
 
 export type CharacterSet = {
   hiragana: Character[];
   katakana: Character[];
-  kanji_basic: Character[];
   [key: string]: Character[]; // Per accesso dinamico
 };
 
@@ -27,7 +37,6 @@ export type Category = {
 export type CategorySet = {
   hiragana: Category[];
   katakana: Category[];
-  kanji_basic: Category[];
   [key: string]: Category[]; // Per accesso dinamico
 };
 
@@ -35,12 +44,13 @@ export type SelectionMap = {
   [key: string]: Set<string>;
 };
 
+// ⭐ AGGIORNAMENTO CHIAVE: Accetta AnyCharacter per i dati unificati
 export type Question = {
   prompt: string;
   correctAnswer: string | string[];
   type: 'charToRomaji' | 'romajiToChar';
-  charObj: Character;
-  options?: Character[];
+  charObj: AnyCharacter; // ⭐ USA IL TIPO UNIFICATO
+  options?: AnyCharacter[]; // ⭐ USA IL TIPO UNIFICATO
 };
 
 export type Feedback = {
@@ -71,6 +81,19 @@ export type StatsMap = {
     correct: number;
     accuracy: number;
   };
+};
+
+// --- TIPI DINAMICI SPOSTATI QUI ---
+// Questi ora saranno esportati da characters.ts e importati da App.tsx, HomeScreen.tsx, ecc.
+
+// Questo tipo è già importato da kanjiService, quindi lo ri-esportiamo se necessario,
+// o semplicemente ci assicuriamo che 'kanjiService' lo esporti correttamente.
+// Per sicurezza, lo includiamo qui se 'kanjiService' non esporta i tipi.
+export type { StudySet, LibraryKanji };
+
+// Mappa per i kanji dinamici
+export type DynamicKanjiMap = {
+  [setId: string]: LibraryKanji[];
 };
 
 // --- Database dei Caratteri ---
@@ -248,17 +271,8 @@ export const CHARACTER_SETS: CharacterSet = {
     { char: 'プ', romaji: 'pu', category: 'p-series', row: 'p', col: 3, type: 'handakuten' },
     { char: 'ペ', romaji: 'pe', category: 'p-series', row: 'p', col: 4, type: 'handakuten' },
     { char: 'ポ', romaji: 'po', category: 'p-series', row: 'p', col: 5, type: 'handakuten' },
-  ],
-  kanji_basic: [
-  { char: '人', romaji: ['jin', 'nin', 'hito'], reading: ['じん', 'にん', 'ひと'], meaning: 'persona', category: 'basic', type: 'basic' },
-  { char: '日', romaji: ['nichi', 'hi', 'ka'], reading: ['にち', 'ひ', 'か'], meaning: 'giorno/sole', category: 'basic', type: 'basic' },
-  { char: '月', romaji: ['getsu', 'tsuki'], reading: ['げつ', 'つき'], meaning: 'mese/luna', category: 'basic', type: 'basic' },
-  { char: '火', romaji: ['ka', 'hi'], reading: ['か', 'ひ'], meaning: 'fuoco', category: 'basic', type: 'basic' },
-  { char: '水', romaji: ['sui', 'mizu'], reading: ['すい', 'みず'], meaning: 'acqua', category: 'basic', type: 'basic' },
-  { char: '木', romaji: ['moku', 'ki'], reading: ['もく', 'き'], meaning: 'albero/legno', category: 'basic', type: 'basic' },
-  { char: '金', romaji: ['kin', 'kane'], reading: ['きん', 'かね'], meaning: 'oro/denaro', category: 'basic', type: 'basic' },
-  { char: '土', romaji: ['do', 'tsuchi'], reading: ['ど', 'つち'], meaning: 'terra/suolo', category: 'basic', type: 'basic' },
-]
+  ]
+  // ⭐ ELIMINATO: kanji_basic[] rimosso da qui
 };
 
 // --- Categorie (ora usate solo per il layout delle impostazioni) ---
@@ -273,9 +287,7 @@ export const CATEGORIES: CategorySet = {
     { id: 'dakuten', name: 'Dakuten' },
     { id: 'handakuten', name: 'Handakuten' },
   ],
-  kanji_basic: [
-    { id: 'basic', name: 'Kanji Basic' }
-  ]
+  // ⭐ ELIMINATO: kanji_basic[] rimosso da qui
 };
 
 // Mappe per la griglia: Colonne (Consonanti) e Righe (Vocali)

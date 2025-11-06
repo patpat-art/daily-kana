@@ -2,17 +2,21 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import _ from 'lodash';
 import * as Tone from 'tone'; // Importato Tone.js
 import { CHARACTER_SETS } from './data/characters';
-import type { Character, SessionHistoryItem, SelectionMap, Question, Feedback, MistakeData } from './data/characters';
+// Importiamo i tipi statici (Character)
+import type { Character, SessionHistoryItem, SelectionMap, Question, Feedback, MistakeData, StudySet, LibraryKanji, AnyCharacter, DynamicKanjiMap } from './data/characters';
 import { getInitialSelectedChars, speak } from './utils/helper';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { STORAGE_KEYS } from './data/constants';
 
-// --- CORREZIONE 1: Importa i componenti con export corretto ---
-// Assumiamo che StatsPanel e StudyPanel siano esportati come 'export const StatsPanel'
-// Se fossero esportati come default, l'errore 2305 non apparirebbe, ma l'errore suggerisce l'opposto.
-import { StatsPanel } from './components/StatsPanel'; 
-import { StudyPanel } from './components/StudyPanel'; 
+// --- Importa Servizi Dinamici e Tipi ---
+import { 
+  getStudySets, 
+  getKanjiForSet, 
+} from './services/kanjiService'; 
 
+// --- Importa Componenti Schermo/Pannelli ---
+import { StatsScreen } from './screens/StatsScreen'; 
+import { StudyPanel } from './components/StudyPanel'; 
 import { HomeScreen } from './screens/HomeScreen';
 import { QuizScreen } from './screens/QuizScreen';
 
@@ -21,6 +25,11 @@ export default function KanaKanjiTrainer() {
   const [screen, setScreen] = useState<'home' | 'quiz'>('home');
   const [showStudyPanel, setShowStudyPanel] = useState(false);
   
+  // 1. STATI PER DATI DINAMICI (I tuoi set da Firebase)
+  const [dynamicSets, setDynamicSets] = useState<StudySet[]>([]);
+  const [dynamicKanjiMap, setDynamicKanjiMap] = useState<DynamicKanjiMap>({}); 
+  const [kanjiLoading, setKanjiLoading] = useState(true); 
+
   // Mappa di selezione Iniziale (Default)
   const initialSelectionMap = useMemo(() => {
     const initialMap: SelectionMap = {};
@@ -40,13 +49,13 @@ export default function KanaKanjiTrainer() {
   const [isTimedMode, setIsTimedMode] = useLocalStorage<boolean>(STORAGE_KEYS.TIMED_MODE, false);
   
   // Stati di sessione
-  const [, setAnswerMode] = useState<'type' | 'multipleChoice'>('type'); // 'type' è solo per charToRomaji
+  const [, setAnswerMode] = useState<'type' | 'multipleChoice'>('type');
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [userAnswer, setUserAnswer] = useState<string>('');
-  const [feedback, setFeedback] = useState<Feedback | null>(null); // Usato solo per modalità type/manual
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [mistakeData, setMistakeData] = useState<MistakeData>({});
   const [sessionStats, setSessionStats] = useLocalStorage(STORAGE_KEYS.SESSION_STATS, { attempts: 0, correct: 0 });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Loading dati persistenti
   
   const [inputState, setInputState] = useState<'typing' | 'correct' | 'incorrect'>('typing');
   const [sessionHistory, setSessionHistory] = useLocalStorage<SessionHistoryItem[]>(STORAGE_KEYS.SESSION_HISTORY, []);
@@ -59,7 +68,6 @@ export default function KanaKanjiTrainer() {
   const timerRef = useRef<number | null>(null);
   const timerKey = useRef<number>(0);
   
-  // CORREZIONE: Tipo esplicito Set<string>
   const [wrongGuesses, setWrongGuesses] = useState<Set<string>>(new Set());
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
 
@@ -83,54 +91,152 @@ export default function KanaKanjiTrainer() {
     return null;
   });
 
-// --- Sanificazione Dati Avvio ---
-  // Questo useEffect viene eseguito una sola volta al caricamento
-  // per pulire dati obsoleti da localStorage.
+// --- RIMUOVI KANJI STATICI E SANIFICA DATI PERSISTENTI ---
   useEffect(() => {
-    // 1. Definisci la "fonte di verità": le chiavi valide
-    const validSetNames = Object.keys(CHARACTER_SETS);
+    const validSetNames = Object.keys(CHARACTER_SETS).filter(name => name !== 'kanji_basic');
 
-    // 2. Sanifica i 'selectedSets'
     setSelectedSets(currentSets => {
       const cleanSets = currentSets.filter(setName => validSetNames.includes(setName));
-      
-      // Controllo di sicurezza: se la pulizia rimuove tutto,
-      // torna a un default sicuro per evitare un'app vuota.
+      if (currentSets.includes('kanji_basic') && !cleanSets.includes('kanji')) {
+        cleanSets.push('kanji');
+      }
       if (cleanSets.length === 0 && currentSets.length > 0) {
-        console.warn('Dati "selectedSets" obsoleti trovati. Reset a hiragana.');
-        return ['hiragana']; // Default sicuro
+        return ['hiragana']; 
       }
       return cleanSets;
     });
 
-    // 3. Sanifica la 'selectionMap'
     setSelectionMap(currentMap => {
-      let needsCleaning = false;
       const cleanMap: SelectionMap = {};
-
-      // Controlla se la mappa caricata ha chiavi che NON sono in CHARACTER_SETS
-      if (Object.keys(currentMap).some(key => !validSetNames.includes(key))) {
-        needsCleaning = true;
-      }
-
-      if (needsCleaning) {
-        console.warn('Dati "selectionMap" obsoleti trovati. Filtro in corso...');
-        // Ricostruisci la mappa da zero, usando solo chiavi valide
-        validSetNames.forEach(validName => {
-          // Mantieni i dati validi se esistono, altrimenti usa l'inizializzazione
-          cleanMap[validName] = currentMap[validName] || initialSelectionMap[validName];
-        });
-        return cleanMap;
-      }
-      
-      // Se non è necessaria la pulizia, restituisci la mappa originale
-      return currentMap;
+      validSetNames.forEach(validName => {
+        cleanMap[validName] = currentMap[validName] || initialSelectionMap[validName];
+      });
+      Object.keys(currentMap).forEach(key => {
+        if (!validSetNames.includes(key) && key !== 'kanji_basic') {
+          cleanMap[key] = currentMap[key];
+        }
+      });
+      return cleanMap;
     });
+
+    const loadMistakeData = () => {
+        try {
+            if (typeof window !== 'undefined') {
+                const data: MistakeData = {};
+                for (let i = 0; i < window.localStorage.length; i++) {
+                    const key = window.localStorage.key(i);
+                    if (key && key.startsWith('mistake:')) {
+                        const char = key.replace('mistake:', '');
+                        const item = window.localStorage.getItem(key);
+                        if (item) {
+                            data[char] = JSON.parse(item);
+                        }
+                    }
+                }
+                setMistakeData(data);
+            }
+        } catch (error) {
+            console.log('Nessun dato errore esistente, inizio da zero');
+        } finally {
+            setLoading(false); 
+        }
+    };
+    loadMistakeData();
   
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // <-- L'array vuoto [] assicura che venga eseguito SOLO una volta
+  }, []); 
 
-// --- Gestione Audio con Tone.js ---
+// --- ⭐ MODIFICA: Logica di caricamento dati divisa ---
+
+// 1. Definiamo la logica di fetch
+const fetchAndSetDynamicData = useCallback(async () => {
+  try {
+      const fetchedSets: StudySet[] = await getStudySets();
+      setDynamicSets(fetchedSets); // Aggiorna i set
+
+      const newKanjiMap: DynamicKanjiMap = {};
+      const kanjiPromises = fetchedSets.map(async (set) => {
+          const kanjiList: LibraryKanji[] = await getKanjiForSet(set.id);
+          newKanjiMap[set.id] = kanjiList;
+      });
+
+      await Promise.all(kanjiPromises);
+      
+      setDynamicKanjiMap(newKanjiMap); // Aggiorna la mappa dei kanji
+
+      // ⭐ CORREZIONE BUG (4/2): Pulisci la SelectionMap
+      setSelectionMap(currentSelectionMap => {
+          const newSelectionMap = { ...currentSelectionMap };
+          
+          fetchedSets.forEach(set => {
+              const setId = set.id;
+              const existingSelections = newSelectionMap[setId];
+              if (!existingSelections) return; // Nessuna selezione per questo set, salta
+
+              // Crea un Set di ID validi dal nuovo caricamento
+              const validKanjiIds = new Set(newKanjiMap[setId].map(k => k.id));
+              
+              // Filtra le selezioni mantenendo solo quelle valide
+              const newSelections = new Set<string>();
+              existingSelections.forEach(selectedId => {
+                  if (validKanjiIds.has(selectedId)) {
+                      newSelections.add(selectedId);
+                  }
+              });
+              
+              newSelectionMap[setId] = newSelections;
+          });
+          
+          return newSelectionMap;
+      });
+
+  } catch (err) {
+      console.error("Errore nel caricamento dei set kanji dinamici:", err);
+  }
+}, [setSelectionMap]); // Aggiungi setSelectionMap come dipendenza
+
+// 2. Wrapper per il caricamento INIZIALE (con spinner)
+const loadDynamicDataWithLoading = useCallback(async () => {
+    setKanjiLoading(true);
+    await fetchAndSetDynamicData();
+    setKanjiLoading(false); 
+}, [fetchAndSetDynamicData]);
+
+// 3. Wrapper per il REFRESH (silenzioso, senza spinner)
+const refreshDynamicDataSilent = useCallback(async () => {
+    await fetchAndSetDynamicData();
+}, [fetchAndSetDynamicData]);
+
+// --- Caricamento Set Dinamici (Usa il wrapper con spinner) ---
+useEffect(() => {
+    if (!loading) { 
+        loadDynamicDataWithLoading();
+    }
+}, [loading, loadDynamicDataWithLoading]); 
+
+// --- Mappa di Caratteri Unificata (Statici + Dinamici) ---
+const allCharacterSets = useMemo(() => {
+    const mergedSets = { ...CHARACTER_SETS };
+
+    dynamicSets.forEach(set => {
+        const kanjiList = dynamicKanjiMap[set.id] || [];
+        
+        mergedSets[set.id] = kanjiList.map(k => ({
+            char: k.char,
+            romaji: k.romaji, 
+            reading: k.reading,
+            meaning: k.meaning,
+            type: 'kanji', 
+            category: { id: set.id, name: set.name }, 
+            id: k.id, 
+        } as Character)); // Cast a Character per compatibilità
+    });
+    
+    return mergedSets;
+}, [dynamicSets, dynamicKanjiMap]);
+
+
+// --- Gestione Audio (Invariato) ---
   const initAudio = useCallback(async () => {
     if (!isAudioReady && sounds) {
       await Tone.start();
@@ -159,32 +265,6 @@ export default function KanaKanjiTrainer() {
     playClick();
   }, [initAudio, playClick]);
 
-  // Caricamento Dati (localStorage per errori)
-  useEffect(() => {
-    const loadMistakeData = () => {
-      try {
-        if (typeof window !== 'undefined') {
-          const data: MistakeData = {};
-          for (let i = 0; i < window.localStorage.length; i++) {
-            const key = window.localStorage.key(i);
-            if (key && key.startsWith('mistake:')) {
-              const char = key.replace('mistake:', '');
-              const item = window.localStorage.getItem(key);
-              if (item) {
-                data[char] = JSON.parse(item);
-              }
-            }
-          }
-          setMistakeData(data);
-        }
-      } catch (error) {
-        console.log('Nessun dato errore esistente, inizio da zero');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadMistakeData();
-  }, []);
 
   const saveMistake = useCallback(async (char: string, isCorrect: boolean) => {
     if (typeof window === 'undefined') return;
@@ -201,9 +281,11 @@ export default function KanaKanjiTrainer() {
     }
   }, [mistakeData]);
 
-  const logAnswer = useCallback(async (charObj: Character, attemptedAnswer: string, isCorrect: boolean) => {
+  // --- LOGICA DEL QUIZ AGGIORNATA ---
+  
+  const logAnswer = useCallback(async (charObj: AnyCharacter, attemptedAnswer: string, isCorrect: boolean) => {
       setSessionHistory(prev => [...prev, {
-        char: charObj.char, 
+        char: charObj.char,
         isCorrect, 
         answer: attemptedAnswer,
         correct: Array.isArray(charObj.romaji) ? charObj.romaji.join(' / ') : charObj.romaji,
@@ -218,8 +300,8 @@ export default function KanaKanjiTrainer() {
       } else {
         setCurrentStreak(0);
       }
-      await saveMistake(charObj.char, isCorrect);
-  }, [saveMistake]); // Dipendenza da saveMistake
+      await saveMistake(charObj.char, isCorrect); 
+  }, [saveMistake]);
 
   const toggleMode = (modeName: string) => {
     setSelectedSets(prev => {
@@ -231,34 +313,61 @@ export default function KanaKanjiTrainer() {
     });
   };
 
-  const getAvailableCharacters = useCallback((): Character[] => {
-    let chars: Character[] = [];
-    selectedSets.forEach((setName: string) => {
-      const setChars = CHARACTER_SETS[setName] || [];
-      const selectedForSet = selectionMap[setName];
+  // Funzione che ottiene i caratteri selezionati (Logica Kanji Master)
+  const getAvailableCharacters = useCallback((): AnyCharacter[] => {
+    let chars: AnyCharacter[] = [];
+    
+    // 1. Controlla i set statici (Hiragana/Katakana)
+    if (selectedSets.includes('hiragana')) {
+      const setChars = allCharacterSets['hiragana'] || [];
+      const selectedForSet = selectionMap['hiragana'];
       if (selectedForSet && selectedForSet.size > 0) {
-        setChars.forEach((charObj: Character) => {
+        setChars.forEach((charObj: AnyCharacter) => {
           if (selectedForSet.has(charObj.char)) {
             chars.push(charObj);
           }
         });
       }
-    });
-    
-    // Fallback se nessun carattere è selezionato
-    if (chars.length === 0) {
-       selectedSets.forEach((setName: string) => {
-         const setChars = CHARACTER_SETS[setName] || [];
-         chars.push(...setChars);
-       });
+    }
+    if (selectedSets.includes('katakana')) {
+      const setChars = allCharacterSets['katakana'] || [];
+      const selectedForSet = selectionMap['katakana'];
+      if (selectedForSet && selectedForSet.size > 0) {
+        setChars.forEach((charObj: AnyCharacter) => {
+          if (selectedForSet.has(charObj.char)) {
+            chars.push(charObj);
+          }
+        });
+      }
     }
     
+    // 2. Controlla il set virtuale "kanji"
+    if (selectedSets.includes('kanji')) {
+      // Se "kanji" è attivo, scorri TUTTI i set dinamici
+      dynamicSets.forEach(set => {
+        const setName = set.id;
+        const setChars = allCharacterSets[setName] || []; // Prende i kanji dalla mappa unificata
+        const selectedForSet = selectionMap[setName]; // Prende le selezioni individuali
+        
+        if (selectedForSet && selectedForSet.size > 0) {
+          setChars.forEach((charObj: AnyCharacter) => {
+            const identifier = 'id' in charObj ? charObj.id : charObj.char;
+            if (identifier && selectedForSet.has(identifier as string)) {
+              chars.push(charObj);
+            }
+          });
+        }
+      });
+    }
+        
     return chars;
-  }, [selectedSets, selectionMap]); // Aggiunte dipendenze
+  }, [selectedSets, selectionMap, allCharacterSets, dynamicSets]); 
 
+  // Aggiorna per accettare AnyCharacter
   const selectNextCharacter = useCallback(() => {
     const available = getAvailableCharacters();
     if (available.length === 0) return null;
+    
     const appearanceMap: { [key: string]: number } = sessionHistory.reduce((acc: { [key: string]: number }, item) => {
       acc[item.char] = (acc[item.char] || 0) + 1;
       return acc;
@@ -295,9 +404,10 @@ export default function KanaKanjiTrainer() {
       }
     }
     return available[available.length - 1];
-  }, [getAvailableCharacters, mistakeData, sessionHistory]); // Aggiunte dipendenze
+  }, [getAvailableCharacters, mistakeData, sessionHistory]); 
 
-  const generateMultipleChoiceOptions = (correct: Character, allChars: Character[]) => {
+  // Aggiorna per accettare AnyCharacter
+  const generateMultipleChoiceOptions = (correct: AnyCharacter, allChars: AnyCharacter[]) => {
     const options = [correct];
     const otherChars = allChars.filter(c => c.char !== correct.char);
     const shuffled = _.shuffle(otherChars);
@@ -305,34 +415,38 @@ export default function KanaKanjiTrainer() {
     return _.shuffle(options);
   };
 
-  const checkAnswer = useCallback((_charObj: Character, attemptedAnswer: string): Feedback => {
+  // Aggiorna per accettare AnyCharacter
+  const checkAnswer = useCallback((charObj: AnyCharacter, attemptedAnswer: string): Feedback => {
       if (!currentQuestion) return { isCorrect: false, correctAnswer: '' };
       let isCorrect = false;
       let correctAnswer: string;
+      
+      const romajiData = charObj.romaji;
+      const readingData = charObj.reading;
+
       if (currentQuestion.type === 'charToRomaji') {
-        const correctAnswers = (currentQuestion.correctAnswer as string[]).map(ans => ans.toLowerCase());
+        const correctAnswers = Array.isArray(romajiData) 
+          ? romajiData.map(ans => ans.toLowerCase()) 
+          : [romajiData.toLowerCase()];
+
         const lowerAttempt = attemptedAnswer.toLowerCase().trim();
         isCorrect = correctAnswers.some(ans => ans === lowerAttempt);
-        correctAnswer = (currentQuestion.correctAnswer as string[]).join(' / ');
+        correctAnswer = Array.isArray(romajiData) ? romajiData.join(' / ') : romajiData;
       } else {
         isCorrect = currentQuestion.correctAnswer === attemptedAnswer;
         correctAnswer = currentQuestion.correctAnswer as string;
       }
       
-      // Ora creiamo il campo 'correctReading' (hiragana)
-    let correctReading: string | undefined = undefined;
+      let correctReading: string | undefined = undefined;
+      if (readingData) {
+         correctReading = Array.isArray(readingData) 
+           ? readingData.join(' / ') 
+           : readingData;
+      }
     
-    // Controlliamo se il 'charObj' della domanda corrente HA il campo 'reading'
-    if (currentQuestion.charObj.reading) {
-       correctReading = Array.isArray(currentQuestion.charObj.reading) 
-         ? currentQuestion.charObj.reading.join(' / ') 
-         : currentQuestion.charObj.reading;
-    }
-    
-    // Ora restituiamo TUTTO (incluso il nuovo campo)
     return { isCorrect, correctAnswer, correctReading };
     
-}, [currentQuestion]); // Aggiunta dipendenza
+}, [currentQuestion]); 
 
   const generateQuestion = useCallback(() => {
     if (timerRef.current) {
@@ -346,33 +460,36 @@ export default function KanaKanjiTrainer() {
         return;
     }
     
-    // Determina la modalità risposta
-    const currentAnswerMode = direction === 'romajiToChar' ? 'multipleChoice' : 'type'; // 'type' è l'unica altra opzione
-    setAnswerMode(currentAnswerMode); // Aggiorna lo stato
-    
-    let question: Question;
+    const charAsCharacter = charObj as Character;
     const allChars = getAvailableCharacters();
     
+    const romajiProp = Array.isArray(charObj.romaji) ? charObj.romaji : [charObj.romaji]; 
+    const readingProp = Array.isArray(charObj.reading) && charObj.reading.length > 0 ? charObj.reading : [charObj.char]; 
+    
+    const readingPrompt = readingProp[0]; 
+
+    const currentAnswerMode = direction === 'romajiToChar' ? 'multipleChoice' : 'type'; 
+    setAnswerMode(currentAnswerMode); 
+    
+    let question: Question;
+
     if (direction === 'charToRomaji') {
       question = {
         prompt: charObj.char,
-        correctAnswer: Array.isArray(charObj.romaji) ? charObj.romaji.map(r => r.toLowerCase()) : [charObj.romaji.toLowerCase()],
+        correctAnswer: romajiProp.map(r => r.toLowerCase()),
         type: 'charToRomaji',
-        charObj
+        charObj: charAsCharacter 
       };
     } else { // romajiToChar
-      const readings = charObj.reading ? (Array.isArray(charObj.reading) ? charObj.reading : [charObj.reading]) : [];
-      const readingPrompt = readings.length > 0 ? readings[0] : ''; // Usa il primo reading
-
-  question = {
-    prompt: readingPrompt, // <-- USA IL READING COME PROMPT
-    correctAnswer: charObj.char,
-    type: 'romajiToChar',
-    charObj,
-    options: generateMultipleChoiceOptions(charObj, allChars)
-  };
+      question = {
+        prompt: readingPrompt, 
+        correctAnswer: charObj.char,
+        type: 'romajiToChar',
+        charObj: charAsCharacter, 
+        options: generateMultipleChoiceOptions(charAsCharacter, allChars) as Question['options'] 
+      };
       if (isSpeechEnabled) {
-          speak(readingPrompt || charObj.char ); // Pronuncia il reading o il carattere
+          speak(readingPrompt); 
       }
     }
     
@@ -382,12 +499,13 @@ export default function KanaKanjiTrainer() {
     setInputState('typing');
     setCardState('default');
     timerKey.current += 1;
-    setWrongGuesses(new Set()); // CORREZIONE: Resetta a un Set vuoto
+    setWrongGuesses(new Set()); 
     setSelectedAnswer(null);
     
-  }, [direction, selectNextCharacter, getAvailableCharacters, isSpeechEnabled]); // Rimosso 'answerMode'
+  }, [direction, selectNextCharacter, getAvailableCharacters, isSpeechEnabled]); 
 
-  const handleIncorrectSkip = useCallback((charObj: Character, attemptedAnswer: string) => {
+  // Aggiorna per accettare AnyCharacter
+  const handleIncorrectSkip = useCallback((charObj: AnyCharacter, attemptedAnswer: string) => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -401,7 +519,6 @@ export default function KanaKanjiTrainer() {
       speak(charObj.char);
     }
 
-    // CORREZIONE: 'checkAnswer' ora è una dipendenza
     const { correctAnswer, correctReading } = checkAnswer(charObj, attemptedAnswer); 
 setFeedback({
     isCorrect: false,
@@ -411,9 +528,10 @@ setFeedback({
     setTimeout(() => {
         generateQuestion();
     }, 800); 
-  }, [logAnswer, generateQuestion, isSpeechEnabled, playIncorrect, direction, checkAnswer]); // Aggiunto checkAnswer
+  }, [logAnswer, generateQuestion, isSpeechEnabled, playIncorrect, direction, checkAnswer]); 
 
-  const handleCorrectSkip = useCallback((charObj: Character, correctAttempt: string) => {
+  // Aggiorna per accettare AnyCharacter
+  const handleCorrectSkip = useCallback((charObj: AnyCharacter, correctAttempt: string) => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -425,35 +543,33 @@ setFeedback({
     setFeedback(null);
     
     if (isSpeechEnabled) {
-      speak(charObj.char); // Unificato, pronuncia sempre il carattere
+      speak(charObj.char); 
     }
 
     setTimeout(() => {
         generateQuestion();
     }, 400); 
-  }, [logAnswer, generateQuestion, isSpeechEnabled, playCorrect]); // Rimosso 'direction'
+  }, [logAnswer, generateQuestion, isSpeechEnabled, playCorrect]); 
 
-  const handleMultipleChoiceClick = (option: Character) => {
-  if (wrongGuesses.has(option.char)) return; // Già sbagliato
+  // Aggiorna per accettare AnyCharacter
+  const handleMultipleChoiceClick = (option: AnyCharacter) => {
+  if (wrongGuesses.has(option.char)) return; 
 
   handlePlayClick();
-  setSelectedAnswer(option.char); // Imposta per l'animazione
+  setSelectedAnswer(option.char); 
 
-  if (!currentQuestion) return; // Controllo di sicurezza
+  if (!currentQuestion) return; 
 
   const isCorrect = option.char === currentQuestion.correctAnswer;
 
   if (isCorrect) {
-    // Risposta CORRETTA
     if (timerRef.current) clearTimeout(timerRef.current);
     logAnswer(currentQuestion.charObj, option.char, true);
     playCorrect();
     setCardState('correct');
-    if (isSpeechEnabled) speak(option.char);
-    // Passa alla prossima domanda
+    if (isSpeechEnabled && option.char) speak(option.char); 
     setTimeout(() => generateQuestion(), 400); 
   } else {
-    // Risposta SBAGLIATA
     logAnswer(currentQuestion.charObj, option.char, false);
     playIncorrect();
     setCardState('incorrect');
@@ -461,24 +577,23 @@ setFeedback({
   }
 };
 
-// Timer
+// Timer (Invariato)
 useEffect(() => {
   if (isTimedMode && screen === 'quiz' && currentQuestion && !feedback) {
-
     if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
       
       const isMultipleChoice = currentQuestion && currentQuestion.options;
       
-      timerRef.current = window.setTimeout(() => { // Usa window.setTimeout per compatibilità TS
+      timerRef.current = window.setTimeout(() => { 
         if (!currentQuestion) return;
         
         if (!isMultipleChoice) {
           handleIncorrectSkip(currentQuestion.charObj, 'timeout');
         }
 
-      }, 2000); // 2 secondi
+      }, 2000); 
     }
 
     return () => {
@@ -511,8 +626,9 @@ useEffect(() => {
       return;
     }
     const lowerAnswer = newAnswer.toLowerCase().trim();
-    const correctAnswers = currentQuestion.correctAnswer as string[]; // Cast
-    const charObj = currentQuestion.charObj;
+    const correctAnswers = currentQuestion.correctAnswer as string[]; 
+    const charObj = currentQuestion.charObj; 
+    
     if (correctAnswers.includes(lowerAnswer)) {
       handleCorrectSkip(charObj, lowerAnswer);
       return;
@@ -534,7 +650,7 @@ useEffect(() => {
       clearTimeout(timerRef.current);
     }
 
-    const { charObj } = currentQuestion;
+    const { charObj } = currentQuestion; 
     const { isCorrect, correctAnswer, correctReading } = checkAnswer(charObj, userAnswer);
     
     logAnswer(charObj, userAnswer, isCorrect);
@@ -571,7 +687,7 @@ useEffect(() => {
     try {
       setSessionStats({ attempts: 0, correct: 0 });
       setSessionHistory([]);
-
+      
       if (typeof window !== 'undefined') {
         const keysToRemove: string[] = [];
         for (let i = 0; i < window.localStorage.length; i++) {
@@ -614,7 +730,8 @@ useEffect(() => {
     'incorrect': 'bg-red-100'
   }[cardState];
   
-  if (loading) {
+  // Condizione di caricamento UNIFICATA
+  if (loading || kanjiLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" style={{ fontFamily: "'Inter', sans-serif" }}>
         <div className="text-xl font-medium text-gray-700">Caricamento...</div>
@@ -626,8 +743,8 @@ useEffect(() => {
   const isCharToRomajiTyping = currentQuestion && currentQuestion.type === 'charToRomaji';
   const isRomajiToCharMultipleChoice = currentQuestion && currentQuestion.type === 'romajiToChar' && currentQuestion.options;
   
-  // Lista di tutti i nomi dei set
-  const allSetNames = Object.keys(CHARACTER_SETS); 
+  // Lista di tutti i nomi dei set UNIFICATI (Statici + Dinamici)
+  const allSetNames = Object.keys(allCharacterSets); 
   
   return (
     <div className="min-h-screen bg-gray-100 relative overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -691,20 +808,21 @@ useEffect(() => {
   isTimedMode={isTimedMode}
   setIsTimedMode={setIsTimedMode}
   sessionHistory={sessionHistory}
-  allSets={CHARACTER_SETS}
+  allSets={allCharacterSets} // Passa la mappa unificata
   visibleSets={selectedSets}
 
-  // --- CORREZIONE 2: Passa 'allSetNames' a HomeScreen ---
   allSetNames={allSetNames} 
 
-  // --- QUESTE SONO LE PROPS MANCANTI ---
-  // Aggiungi questo blocco di props che
-  // prima andavano a SettingsPanel
   selectionMap={selectionMap}
   setSelectionMap={setSelectionMap}
   resetProgress={resetProgress}
   isAutoSkipEnabled={isAutoSkipEnabled}
   setIsAutoSkipEnabled={setIsAutoSkipEnabled}
+  
+  // ⭐ NUOVE PROPS PER SETTINGSSCREEN E KANJIMANAGER
+  dynamicSets={dynamicSets}
+  dynamicKanjiMap={dynamicKanjiMap}
+  refreshDynamicData={refreshDynamicDataSilent} // ⭐ PASSA LA FUNZIONE SILENZIOSA
 />
 {/* --- Schermata Quiz --- */}
 <div className={`w-full min-h-screen p-4 md:p-8 absolute top-0 left-0
@@ -730,7 +848,7 @@ useEffect(() => {
     cardState={cardState}
     setCardState={setCardState}
     isSpeechEnabled={isSpeechEnabled}
-    setIsSpeechEnabled={setIsSpeechEnabled}
+    setIsSpeechEnabled={setIsSoundEffectsEnabled}
     initAudio={initAudio}
     isSoundEffectsEnabled={isSoundEffectsEnabled}
     setIsSoundEffectsEnabled={setIsSoundEffectsEnabled}
@@ -742,7 +860,7 @@ useEffect(() => {
     isRomajiToCharMultipleChoice={!!isRomajiToCharMultipleChoice}
     wrongGuesses={wrongGuesses}
     selectedAnswer={selectedAnswer}
-    handleMultipleChoiceClick={handleMultipleChoiceClick} // Passa la nuova funzione
+    handleMultipleChoiceClick={handleMultipleChoiceClick}
     userAnswer={userAnswer}
     handleInputChange={handleInputChange}
     manualCheckAnswer={manualCheckAnswer}
@@ -756,13 +874,13 @@ useEffect(() => {
       {/* --- Modali (Pannelli) --- */}
       
       {/* Backdrop per i pannelli */}
-      {(showStats || showStudyPanel) && ( // <-- Aggiunto showStudyPanel
+      {(showStats || showStudyPanel) && ( 
         <div 
           className="fixed inset-0 bg-black opacity-30 z-40 transition-opacity duration-500 ease-in-out"
           onClick={() => {
             handlePlayClick();
             setShowStats(false);
-            setShowStudyPanel(false); // <-- Aggiunto
+            setShowStudyPanel(false); 
           }} 
         />
       )}
@@ -770,11 +888,12 @@ useEffect(() => {
       {/* Pannello Statistiche (Scorrevole) */}
       <div className={`fixed top-0 right-0 h-full w-full max-w-lg z-50 transition-transform duration-500 ease-in-out
                       ${showStats ? 'translate-x-0' : 'translate-x-full'}`}>
-        <StatsPanel 
+        <StatsScreen 
             history={sessionHistory} 
-            allSets={CHARACTER_SETS}
-            // allSetNames è definito fuori dal return
+            allSets={allCharacterSets}
             allSetNames={allSetNames}
+            dynamicSets={dynamicSets}
+            dynamicKanjiMap={dynamicKanjiMap}
             onClose={() => {
               handlePlayClick();
               setShowStats(false);
@@ -790,18 +909,17 @@ useEffect(() => {
                       ${showStudyPanel ? 'translate-x-0' : 'translate-x-full'}`}>
         <StudyPanel
           onClose={() => {
-            // onPlayClick è già nel pannello
             setShowStudyPanel(false);
           }}
           visibleSets={selectedSets}
-          onPlayClick={handlePlayClick} // Passa la funzione base
+          onPlayClick={handlePlayClick} 
           isSpeechEnabled={isSpeechEnabled}
-          allSetNames={allSetNames} // Passiamo la lista completa qui
+          allSetNames={allSetNames} 
           setIsSpeechEnabled={setIsSpeechEnabled}
           initAudio={initAudio}
         />
       </div>
-
+ 
     </div>
     </div>
   );

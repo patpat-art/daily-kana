@@ -1,41 +1,36 @@
 import React from 'react';
 
 // 1. IMPORTA I COMPONENTI CHE USERAI
-// (Assicurati che i percorsi siano corretti rispetto alla tua struttura)
 import { SetupCard } from '../components/SetupCard';
 import { DirectionToggle } from '../components/DirectionSelector';
-import { StudyIcon, StreakIcon, SoundOnIcon, SoundOffIcon } from '../components/Icons';
+import { StudyIcon, StreakIcon } from '../components/Icons'; 
+// ⭐ Rimosso l'import di 'StudySet'
 
 // 2. DEFINISCI I TIPI PER LE PROPS
-// (Puoi copiarli da App.tsx o definirli qui)
 type Direction = 'charToRomaji' | 'romajiToChar';
 
-// 3. DEFINISCI LE PROPS CHE IL COMPONENTE RICEVERÀ DA APP.TSX
+// 3. DEFINISCI LE PROPS CHE IL COMPONENTE RICEVERÀ
 type HomeScreenProps = {
   screen: 'home' | 'quiz';
   handlePlayClick: () => void;
-  initAudio: () => void;
-  isSoundEffectsEnabled: boolean;
-  setIsSoundEffectsEnabled: (value: React.SetStateAction<boolean>) => void;
   selectedSets: string[];
-  toggleMode: (modeName: string) => void; // Importante!
+  toggleMode: (modeName: string) => void;
   direction: Direction;
   setDirection: (value: React.SetStateAction<Direction>) => void;
   setShowStudyPanel: (value: React.SetStateAction<boolean>) => void;
   startQuiz: () => void;
-  available: { length: number }; // Riceviamo solo la lunghezza
+  available: { length: number }; 
   isTimedMode: boolean;
   setIsTimedMode: (value: React.SetStateAction<boolean>) => void;
+  
+  // ⭐ Rimosso 'dynamicSets'
 };
 
 // 4. CREA IL COMPONENTE
 export const HomeQuizScreen: React.FC<HomeScreenProps> = ({
-  // 5. "DESTRUTTURA" LE PROPS IN VARIABILI
+  // 5. "DESTRUTTURA" LE PROPS
   screen,
   handlePlayClick,
-  initAudio,
-  isSoundEffectsEnabled,
-  setIsSoundEffectsEnabled,
   selectedSets,
   toggleMode,
   direction,
@@ -44,7 +39,8 @@ export const HomeQuizScreen: React.FC<HomeScreenProps> = ({
   startQuiz,
   available,
   isTimedMode,
-  setIsTimedMode
+  setIsTimedMode,
+  // ⭐ Rimosso 'dynamicSets'
 }) => {
   
   // 6. AGGIUNGI IL RETURN
@@ -53,22 +49,31 @@ export const HomeQuizScreen: React.FC<HomeScreenProps> = ({
                         transition-all duration-500 ease-in-out
                         ${screen === 'quiz' ? '-translate-x-full opacity-70' : 'translate-x-0 opacity-100'}`}>
           
-          <button
-            onClick={() => {
-              initAudio();
-              setIsSoundEffectsEnabled(prev => !prev);
-            }}
-            className="absolute top-6 left-6 text-gray-500 hover:text-gray-800 p-2 rounded-full hover:bg-gray-200 transition"
-            title={isSoundEffectsEnabled ? 'Disattiva effetti sonori' : 'Attiva effetti sonori'}
-          >
-            {isSoundEffectsEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
-          </button>
-          
+          {/* ⭐ MODIFICA: Ripristinata la visualizzazione a 3 card */}
           <div className="flex flex-row space-x-4 md:space-x-8 mb-10 mt-10">
-            <SetupCard char="あ" title="Hiragana" isSelected={selectedSets.includes('hiragana')} onClick={() => { handlePlayClick(); toggleMode('hiragana'); }} />
-            <SetupCard char="ア" title="Katakana" isSelected={selectedSets.includes('katakana')} onClick={() => { handlePlayClick(); toggleMode('katakana'); }} />
-            <SetupCard char="人" title="Kanji" isSelected={selectedSets.includes('kanji_basic')} onClick={() => { handlePlayClick(); toggleMode('kanji_basic'); }} />
+            {/* Set Statici */}
+            <SetupCard 
+              char="あ" 
+              title="Hiragana" 
+              isSelected={selectedSets.includes('hiragana')} 
+              onClick={() => { handlePlayClick(); toggleMode('hiragana'); }} 
+            />
+            <SetupCard 
+              char="ア" 
+              title="Katakana" 
+              isSelected={selectedSets.includes('katakana')} 
+              onClick={() => { handlePlayClick(); toggleMode('katakana'); }} 
+            />
+            
+            {/* ⭐ Set "Kanji" (Interruttore Master Virtuale) */}
+            <SetupCard 
+              char="人" // Icona kanji
+              title="Kanji" 
+              isSelected={selectedSets.includes('kanji')} // Usa la chiave 'kanji'
+              onClick={() => { handlePlayClick(); toggleMode('kanji'); }} // Usa la chiave 'kanji'
+            />
           </div>
+          
           <div className="w-full max-w-lg mt-4 mb-10">
             <DirectionToggle direction={direction} setDirection={setDirection} onPlayClick={handlePlayClick} />
           </div>

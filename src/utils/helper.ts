@@ -1,5 +1,6 @@
 import { CHARACTER_SETS, COLS_MAP, VOWEL_ROWS_MAP } from '../data/characters';
 import type { Character } from '../data/characters';
+import type { SessionHistoryItem, StatsMap } from '../data/characters.ts';
 
 // Funzione helper per ottenere i caratteri di base (per l'init)
 export const getInitialSelectedChars = (setName: string): Set<string> => {
@@ -41,18 +42,75 @@ export const getGridDataForSet = (setName: string, charType: string) => {
 };
 
 
-// --- Funzione Audio ---
+// --- Funzione Audio (Modificata per sicurezza) ---
 
-export const speak = (text: string) => {
+// ⭐ CORREZIONE CHIAVE: Accetta string | undefined e controlla all'inizio
+export const speak = (text: string | undefined) => {
+  if (!text || !('speechSynthesis' in window)) return;
+  
   try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ja-JP';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+    
   } catch (error) {
     console.error('Sintesi vocale non riuscita:', error);
   }
+};
+
+// Definizioni di colori e lerp (funzioni base)
+export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+export const COLORS = {
+  RED: { r: 220, g: 38, b: 38 },
+  YELLOW: { r: 202, g: 138, b: 4 },
+  GREEN: { r: 21, g: 128, b: 61 },
+};
+
+// Funzione 1: Calcola la mappa di accuratezza
+export const getAccuracyMap = (sessionHistory: SessionHistoryItem[]): StatsMap => {
+    return sessionHistory.reduce((acc: StatsMap, item) => {
+      const char = item.char;
+      if (!acc[char]) {
+        acc[char] = { char: char, attempts: 0, correct: 0, accuracy: 0 };
+      }
+      acc[char].attempts += 1;
+      if (item.isCorrect) {
+        acc[char].correct += 1;
+      }
+      acc[char].accuracy = acc[char].attempts > 0 ? (acc[char].correct / acc[char].attempts) * 100 : 0;
+      return acc;
+  }, {});
+};
+
+// Funzione 2: Calcola lo stile CSS in base all'accuratezza
+export const getAccuracyStyle = (accuracy: number | null, isAttempted: boolean): React.CSSProperties => {
+  if (!isAttempted || accuracy === null) {
+    return { 
+      backgroundColor: '#E5E7EB',
+      color: '#6B7280'
+    };
+  }
+  let startColor, endColor, t;
+  if (accuracy <= 50) {
+    t = accuracy / 50;
+    startColor = COLORS.RED;
+    endColor = COLORS.YELLOW;
+  } else {
+    t = (accuracy - 50) / 50;
+    startColor = COLORS.YELLOW;
+    endColor = COLORS.GREEN;
+  }
+  const r = Math.round(lerp(startColor.r, endColor.r, t));
+  const g = Math.round(lerp(startColor.g, endColor.g, t));
+  const b = Math.round(lerp(startColor.b, endColor.b, t));
+  const solidColor = `rgb(${r}, ${g}, ${b})`;
+  const fadedColor = `rgba(${r}, ${g}, ${b}, 0.2)`;
+  const textColor = accuracy > 70 ? 'white' : 'black';
+  return {
+    backgroundImage: `linear-gradient(to top, ${solidColor} ${accuracy}%, ${fadedColor} ${accuracy}%)`,
+    color: textColor,
+  };
 };

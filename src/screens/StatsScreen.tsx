@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'; // Importa useState
-// Importa i tipi necessari (inclusi i tipi dinamici)
+import React, { useMemo, useState } from 'react';
+// Importa i tipi necessari
 import type { 
   CharacterSet, 
   Character, 
@@ -8,21 +8,18 @@ import type {
   DynamicKanjiMap} from '../data/characters.ts';
 // Importa i valori necessari
 import { COLS_MAP, VOWEL_ROWS_MAP } from '../data/characters.ts';
-// Importa le funzioni helper (rimuovi le definizioni locali)
 import { getAccuracyMap, getAccuracyStyle } from '../utils/helper.ts';
-// Importa la card singola e l'icona per tornare indietro
 import { KanjiStatsCard } from '../components/KanjiStatsCard.tsx';
-import { ArrowLeftIcon } from '../components/Icons.tsx'; // Assicurati che il percorso sia corretto
+import { ArrowLeftIcon } from '../components/Icons.tsx';
 
-// Props aggiornate per StatsScreen
-interface DashboardProps {
+// Props per StatsScreen
+interface StatsScreenProps {
   history: SessionHistoryItem[];
-  allSets: CharacterSet; // La mappa unificata (per i dati statici)
+  allSets: CharacterSet; // La mappa unificata
   onClose: () => void;
-  visibleSets: string[]; // Non più usato per i tab
-  allSetNames: string[]; // Non più usato per i tab
-  onPlayClick: () => void; // (Se serve, altrimenti rimuovi)
-  
+  visibleSets: string[];
+  allSetNames: string[];
+  onPlayClick: () => void;
   // Dati separati (necessari per il nuovo layout)
   dynamicSets: StudySet[];
   dynamicKanjiMap: DynamicKanjiMap;
@@ -31,8 +28,8 @@ interface DashboardProps {
 // Tipi per la navigazione interna
 type MainTab = 'hiragana' | 'katakana' | 'kanji';
 
-// --- Componente Dashboard ---
-export const Dashboard: React.FC<DashboardProps> = ({ 
+// --- Pannello Statistiche ---
+export const StatsScreen: React.FC<StatsScreenProps> = ({ 
   history, 
   allSets, 
   onClose, 
@@ -45,9 +42,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const [viewingSetId, setViewingSetId] = useState<string | null>(null);
 
     // 1. STATS MAP (INVARIATO)
+    // Mappa grezza di accuratezza per *ogni singolo carattere* praticato
     const statsMap = useMemo(() => getAccuracyMap(history), [history]);
 
-    // 2. FUNZIONE HELPER PER GRID STATICHE (INVARIATO)
+    // 2. FUNZIONE HELPER PER GRID STATICHE
     const getStatsGridData = (setName: string, charType: string) => {
         const fullSet = allSets[setName];
         if (!fullSet) return { header: [], rows: [] };
@@ -82,6 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }; 
 
     // 3. STATS SET STATICI (HIRAGANA/KATAKANA)
+    // Processa solo i set statici per la visualizzazione a griglia
     const staticStatsGrouped = useMemo(() => {
       const acc: { [key: string]: any } = {};
       ['hiragana', 'katakana'].forEach(setName => {
@@ -96,6 +95,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }, [allSets, statsMap]); 
 
     // 4. STATS SET DINAMICI (KANJI) - Calcola le medie
+    // Processa solo i set dinamici per la visualizzazione a card
     const dynamicSetStats = useMemo(() => {
       return dynamicSets.map(set => {
           const kanjiList = dynamicKanjiMap[set.id] || [];
@@ -136,11 +136,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // 1. Griglia STATICA (Hiragana/Katakana)
     const renderStaticStats = (setName: 'hiragana' | 'katakana') => {
       const data = staticStatsGrouped[setName];
-      if (!data) return (
-        <p className="text-gray-500 text-center p-4">
-          Nessuna statistica ancora per {setName}.
-        </p>
-      );
+      if (!data) return <p className="text-gray-500">Nessun dato per {setName}.</p>;
       
       return (
         <div className="space-y-6">
@@ -228,58 +224,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
 
-            {/* Messaggio se non ci sono dati */}
-            {history.length === 0 && (
-              <div className="p-6 text-center">
-                <p className="text-gray-600">
-                  Completa qualche quiz nella sezione "Pratica" per vedere le tue statistiche qui!
-                </p>
-              </div>
-            )}
-            
-            {/* Contenitore stile "SettingsPanel" con Tab */}
-            {history.length > 0 && (
-              <>
-                {/* 1. TAB (Statici) */}
-                <div className="flex border-b mb-4">
-                  <button
-                    key="hiragana"
-                    className={`py-2 px-4 capitalize japanese-char ${activeTab === 'hiragana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
-                    onClick={() => { setActiveTab('hiragana'); setViewingSetId(null); }}
-                  >
-                    Hiragana
-                  </button>
-                  <button
-                    key="katakana"
-                    className={`py-2 px-4 capitalize japanese-char ${activeTab === 'katakana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
-                    onClick={() => { setActiveTab('katakana'); setViewingSetId(null); }}
-                  >
-                    Katakana
-                  </button>
-                  <button
-                    key="kanji"
-                    className={`py-2 px-4 capitalize japanese-char ${activeTab === 'kanji' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
-                    onClick={() => { setActiveTab('kanji'); }}
-                  >
-                    Kanji
-                  </button>
-                </div>
+            {/* 1. TAB (Statici) */}
+            <div className="flex border-b mb-4">
+              <button
+                key="hiragana"
+                className={`py-2 px-4 capitalize japanese-char ${activeTab === 'hiragana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
+                onClick={() => { setActiveTab('hiragana'); setViewingSetId(null); }}
+              >
+                Hiragana
+              </button>
+              <button
+                key="katakana"
+                className={`py-2 px-4 capitalize japanese-char ${activeTab === 'katakana' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
+                onClick={() => { setActiveTab('katakana'); setViewingSetId(null); }}
+              >
+                Katakana
+              </button>
+              <button
+                key="kanji"
+                className={`py-2 px-4 capitalize japanese-char ${activeTab === 'kanji' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500'}`}
+                onClick={() => { setActiveTab('kanji'); }}
+              >
+                Kanji
+              </button>
+            </div>
 
-                {/* 2. CONTENUTO TAB (Logica condizionale) */}
-                <div className="mt-6">
-                  {activeTab === 'hiragana' && renderStaticStats('hiragana')}
-                  {activeTab === 'katakana' && renderStaticStats('katakana')}
-                  {activeTab === 'kanji' && (
-                    viewingSetId ? renderKanjiDetailGrid(viewingSetId) : renderKanjiSetMenu()
-                  )}
-                </div>
-              </>
-            )}
+            {/* 2. CONTENUTO TAB (Logica condizionale) */}
+            <div className="mt-6">
+              {activeTab === 'hiragana' && renderStaticStats('hiragana')}
+              {activeTab === 'katakana' && renderStaticStats('katakana')}
+              {activeTab === 'kanji' && (
+                viewingSetId ? renderKanjiDetailGrid(viewingSetId) : renderKanjiSetMenu()
+              )}
+            </div>
         </div>
     );
 };
 
-// --- Componenti Interni (StatsGrid) ---
+// --- Componenti Interni (StatsGrid e KanjiStatsCard) ---
 
 // Props per StatsGrid
 interface StatsGridProps {

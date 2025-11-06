@@ -7,8 +7,6 @@ import {
   ArrowLeftIcon,
   Squares2X2Icon,
   ListBulletIcon
-  // Nota: Dovresti aggiungere un'icona 'PlusIcon' qui se ce l'hai,
-  // altrimenti useremo un testo '+' come sto facendo ora.
 } from '../components/Icons'; 
 
 import {
@@ -25,7 +23,12 @@ import {
   type NewLibraryKanji
 } from '../services/kanjiService'; 
 
-export const KanjiManager: React.FC = () => {
+// 1. Definizione delle Props
+type KanjiManagerProps = {
+  refreshDynamicData: () => Promise<void>;
+};
+
+export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }) => {
   // Stati
   const [sets, setSets] = useState<StudySet[]>([]);
   const [kanjiForSet, setKanjiForSet] = useState<LibraryKanji[]>([]); 
@@ -83,10 +86,8 @@ export const KanjiManager: React.FC = () => {
       const newSetWithId = await addSet(newSetData);
       if (newSetWithId && newSetWithId.id) {
         setSets([...sets, newSetWithId]);
-        
-        // Entra direttamente nel set appena creato
+        await refreshDynamicData(); // Refresh globale
         await handleSetSelect(newSetWithId);
-        
       } else { 
         setError("Impossibile creare il set. ID non ricevuto.");
       }
@@ -103,11 +104,11 @@ export const KanjiManager: React.FC = () => {
   };
 
   const handleDeleteSet = async (setId: string) => {
-    // ... (logica invariata)
     if (!window.confirm("Sei sicuro? Questo eliminerà il set E TUTTI i kanji al suo interno.")) return;
     try {
       await deleteSet(setId);
       setSets(sets.filter(set => set.id !== setId));
+      await refreshDynamicData(); // Refresh globale
     } catch (err) { /* ... */ }
   };
 
@@ -138,10 +139,13 @@ export const KanjiManager: React.FC = () => {
     
     try {
       await updateKanji(editingKanji.id, updatedData);
+      // Aggiorna stato locale
       setKanjiForSet(kanjiForSet.map(k => 
         k.id === editingKanji.id ? { ...k, ...updatedData } : k
       ));
       handleCancelEdit();
+      // ⭐ CHIAMA REFRESH GLOBALE
+      await refreshDynamicData();
     } catch (err) { /* ... */ }
   };
   
@@ -160,18 +164,23 @@ export const KanjiManager: React.FC = () => {
     
     try {
       const newKanjiWithId = await addKanji(newKanjiData);
+      // Aggiorna stato locale
       setKanjiForSet([...kanjiForSet, newKanjiWithId]);
       setNewKanjiChar('');
       setNewKanjiReading('');
       setNewKanjiMeaning('');
+      // ⭐ CHIAMA REFRESH GLOBALE
+      await refreshDynamicData();
     } catch (err) { /* ... */ }
   };
 
   const handleDeleteKanji = async (kanjiId: string) => {
-    // ... (logica invariata)
     try {
       await deleteKanji(kanjiId);
+      // Aggiorna stato locale
       setKanjiForSet(kanjiForSet.filter(k => k.id !== kanjiId));
+      // ⭐ CHIAMA REFRESH GLOBALE
+      await refreshDynamicData();
     } catch (err) { /* ... */ }
   };
 
@@ -188,7 +197,6 @@ export const KanjiManager: React.FC = () => {
           className="w-full h-48 p-4 flex flex-col justify-center items-center rounded-2xl shadow-lg bg-white text-gray-400 hover:text-blue-600 hover:shadow-xl transition transform hover:-translate-y-1 border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer group"
           title="Crea un nuovo set"
         >
-          {/* MODIFICA: Aggiunto pb-4 per spostare il '+' in alto */}
           <span className="text-8xl font-light text-gray-400 group-hover:text-blue-500 transition-colors pb-4">
             +
           </span>
@@ -205,7 +213,6 @@ export const KanjiManager: React.FC = () => {
               onClick={() => handleSetSelect(set)}
               className="w-full h-full p-4 flex flex-col justify-between items-center rounded-2xl"
             >
-              {/* MODIFICA: Aggiunto mt-2 per spostare il kanji in basso */}
               <span className="text-7xl font-bold japanese-char text-blue-600 mt-6">
                 集
               </span>
@@ -238,7 +245,6 @@ export const KanjiManager: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-10 gap-8">
         {/* --- Colonna Form (invariata) --- */}
         <div className="md:col-span-4 md:col-start-2 space-y-4">
-          {/* ... (Tutto il JSX del form rimane invariato) ... */}
           <div className="w-full p-6 flex flex-col items-center space-y-4 rounded-2xl shadow-lg bg-white">
             <input
               type="text"
