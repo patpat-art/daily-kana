@@ -45,7 +45,7 @@ export default function KanaKanjiTrainer() {
   const [direction, setDirection] = useLocalStorage<'charToRomaji' | 'romajiToChar'>(STORAGE_KEYS.DIRECTION, 'charToRomaji');
   const [isAutoSkipEnabled, setIsAutoSkipEnabled] = useLocalStorage<boolean>(STORAGE_KEYS.AUTO_SKIP, true);
   const [isSoundEffectsEnabled, setIsSoundEffectsEnabled] = useLocalStorage<boolean>(STORAGE_KEYS.SOUND_EFFECTS, true);
-  const [isSpeechEnabled, setIsSpeechEnabled] = useLocalStorage<boolean>(STORAGE_KEYS.SPEECH, false);
+  // const [isSpeechEnabled, setIsSpeechEnabled] = useLocalStorage<boolean>(STORAGE_KEYS.SPEECH, false); // RIMOSSO
   const [isTimedMode, setIsTimedMode] = useLocalStorage<boolean>(STORAGE_KEYS.TIMED_MODE, false);
   
   // Stati di sessione
@@ -488,7 +488,8 @@ const allCharacterSets = useMemo(() => {
         charObj: charAsCharacter, 
         options: generateMultipleChoiceOptions(charAsCharacter, allChars) as Question['options'] 
       };
-      if (isSpeechEnabled) {
+      // --- MODIFICATO ---
+      if (isSoundEffectsEnabled) {
           speak(readingPrompt); 
       }
     }
@@ -502,7 +503,7 @@ const allCharacterSets = useMemo(() => {
     setWrongGuesses(new Set()); 
     setSelectedAnswer(null);
     
-  }, [direction, selectNextCharacter, getAvailableCharacters, isSpeechEnabled]); 
+  }, [direction, selectNextCharacter, getAvailableCharacters, isSoundEffectsEnabled]); // MODIFICATO
 
   // Aggiorna per accettare AnyCharacter
   const handleIncorrectSkip = useCallback((charObj: AnyCharacter, attemptedAnswer: string) => {
@@ -515,20 +516,21 @@ const allCharacterSets = useMemo(() => {
     setInputState('incorrect');
     setCardState('incorrect');
     
-    if (isSpeechEnabled && direction === 'charToRomaji') {
+    // --- MODIFICATO ---
+    if (isSoundEffectsEnabled && direction === 'charToRomaji') {
       speak(charObj.char);
     }
 
     const { correctAnswer, correctReading } = checkAnswer(charObj, attemptedAnswer); 
-setFeedback({
-    isCorrect: false,
-    correctAnswer,
-    correctReading 
-});
+    setFeedback({
+        isCorrect: false,
+        correctAnswer,
+        correctReading 
+    });
     setTimeout(() => {
         generateQuestion();
     }, 800); 
-  }, [logAnswer, generateQuestion, isSpeechEnabled, playIncorrect, direction, checkAnswer]); 
+  }, [logAnswer, generateQuestion, isSoundEffectsEnabled, playIncorrect, direction, checkAnswer]); // MODIFICATO
 
   // Aggiorna per accettare AnyCharacter
   const handleCorrectSkip = useCallback((charObj: AnyCharacter, correctAttempt: string) => {
@@ -542,40 +544,42 @@ setFeedback({
     setCardState('correct');
     setFeedback(null);
     
-    if (isSpeechEnabled) {
+    // --- MODIFICATO ---
+    if (isSoundEffectsEnabled) {
       speak(charObj.char); 
     }
 
     setTimeout(() => {
         generateQuestion();
     }, 400); 
-  }, [logAnswer, generateQuestion, isSpeechEnabled, playCorrect]); 
+  }, [logAnswer, generateQuestion, isSoundEffectsEnabled, playCorrect]); // MODIFICATO
 
   // Aggiorna per accettare AnyCharacter
   const handleMultipleChoiceClick = (option: AnyCharacter) => {
-  if (wrongGuesses.has(option.char)) return; 
+    if (wrongGuesses.has(option.char)) return; 
 
-  handlePlayClick();
-  setSelectedAnswer(option.char); 
+    handlePlayClick();
+    setSelectedAnswer(option.char); 
 
-  if (!currentQuestion) return; 
+    if (!currentQuestion) return; 
 
-  const isCorrect = option.char === currentQuestion.correctAnswer;
+    const isCorrect = option.char === currentQuestion.correctAnswer;
 
-  if (isCorrect) {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    logAnswer(currentQuestion.charObj, option.char, true);
-    playCorrect();
-    setCardState('correct');
-    if (isSpeechEnabled && option.char) speak(option.char); 
-    setTimeout(() => generateQuestion(), 400); 
-  } else {
-    logAnswer(currentQuestion.charObj, option.char, false);
-    playIncorrect();
-    setCardState('incorrect');
-    setWrongGuesses(prev => new Set(prev).add(option.char));
-  }
-};
+    if (isCorrect) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      logAnswer(currentQuestion.charObj, option.char, true);
+      playCorrect();
+      setCardState('correct');
+      // --- MODIFICATO ---
+      if (isSoundEffectsEnabled && option.char) speak(option.char); 
+      setTimeout(() => generateQuestion(), 400); 
+    } else {
+      logAnswer(currentQuestion.charObj, option.char, false);
+      playIncorrect();
+      setCardState('incorrect');
+      setWrongGuesses(prev => new Set(prev).add(option.char));
+    }
+  };
 
 // Timer (Invariato)
 useEffect(() => {
@@ -668,7 +672,8 @@ useEffect(() => {
       correctReading
     });
     
-    if (isSpeechEnabled) {
+    // --- MODIFICATO ---
+    if (isSoundEffectsEnabled) {
       if (direction === 'romajiToChar' && isCorrect) {
         speak(charObj.char);
       } else if (direction === 'charToRomaji') {
@@ -847,11 +852,13 @@ useEffect(() => {
     cardBgClass={cardBgClass}
     cardState={cardState}
     setCardState={setCardState}
-    isSpeechEnabled={isSpeechEnabled}
-    setIsSpeechEnabled={setIsSoundEffectsEnabled}
+    // --- MODIFICATO ---
+    // isSpeechEnabled={isSpeechEnabled} // RIMOSSO
+    // setIsSpeechEnabled={setIsSoundEffectsEnabled} // RIMOSSO
     initAudio={initAudio}
     isSoundEffectsEnabled={isSoundEffectsEnabled}
     setIsSoundEffectsEnabled={setIsSoundEffectsEnabled}
+    // --- FINE MODIFICA ---
     isTimedMode={isTimedMode}
     isCharToRomajiTyping={!!isCharToRomajiTyping}
     feedback={feedback}
@@ -913,9 +920,11 @@ useEffect(() => {
           }}
           visibleSets={selectedSets}
           onPlayClick={handlePlayClick} 
-          isSpeechEnabled={isSpeechEnabled}
+          // --- MODIFICATO ---
+          isSpeechEnabled={isSoundEffectsEnabled}
           allSetNames={allSetNames} 
-          setIsSpeechEnabled={setIsSpeechEnabled}
+          setIsSpeechEnabled={setIsSoundEffectsEnabled}
+          // --- FINE MODIFICA ---
           initAudio={initAudio}
         />
       </div>

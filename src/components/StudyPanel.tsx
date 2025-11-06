@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CHARACTER_SETS, CATEGORIES, type Character } from '../data/characters.ts';
 import { getGridDataForSet, speak } from '../utils/helper.ts';
-import { SpeechOnIcon, SpeechOffIcon } from './Icons.tsx';
+// import { SpeechOnIcon, SpeechOffIcon } from './Icons.tsx'; // RIMOSSO
 
 // Props per StudyPanel
 interface StudyPanelProps {
@@ -21,7 +21,6 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
   allSetNames, // <-- NUOVA PROP
   onPlayClick,
   isSpeechEnabled,
-  setIsSpeechEnabled,
   initAudio,
 }) => {
   // Logica migliorata: usa visibleSets[0] se esiste, altrimenti il primo di tutti i set
@@ -43,7 +42,7 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
     initAudio(); // Assicura che l'audio sia pronto
     onPlayClick(); // Riproduce solo il suono del click
     if (isSpeechEnabled) {
-      speak(char); // Parla il carattere
+      speak(char); // Parla il carattere (usa lo stato audio globale)
     }
   };
 
@@ -62,17 +61,9 @@ export const StudyPanel: React.FC<StudyPanelProps> = ({
         <h2 className="text-2xl font-bold capitalize">Study Panel</h2>
         {/* --- Pulsanti Speech e Chiudi --- */}
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => {
-              onPlayClick(); 
-              setIsSpeechEnabled(prev => !prev);
-            }}
-            className={`p-2 rounded-full transition-colors
-                        ${isSpeechEnabled ? 'text-green-600 bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
-            title={isSpeechEnabled ? 'Disattiva sintesi vocale' : 'Attiva sintesi vocale'}
-          >
-            {isSpeechEnabled ? <SpeechOnIcon /> : <SpeechOffIcon />}
-          </button>
+          
+          {/* --- PULSANTE SPEECH RIMOSSO --- */}
+          
           <button onClick={handleClose} className="text-gray-500 hover:text-gray-800 text-3xl font-light leading-none">
             &times;
           </button>

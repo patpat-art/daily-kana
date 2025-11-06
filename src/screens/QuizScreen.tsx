@@ -6,8 +6,8 @@ import {
   StreakIcon, 
   SoundOnIcon, 
   SoundOffIcon, 
-  SpeechOnIcon, 
-  SpeechOffIcon 
+  // SpeechOnIcon,  <- RIMOSSO
+  // SpeechOffIcon <- RIMOSSO
 } from '../components/Icons';
 
 // 2. IMPORTA I TIPI DI CUI HAI BISOGNO
@@ -35,8 +35,8 @@ type QuizScreenProps = {
   cardBgClass: string;
   cardState: 'default' | 'correct' | 'incorrect';
   setCardState: (state: 'default' | 'correct' | 'incorrect') => void;
-  isSpeechEnabled: boolean;
-  setIsSpeechEnabled: (value: React.SetStateAction<boolean>) => void;
+  // isSpeechEnabled: boolean; <- RIMOSSO
+  // setIsSpeechEnabled: (value: React.SetStateAction<boolean>) => void; <- RIMOSSO
   initAudio: () => void;
   isSoundEffectsEnabled: boolean;
   setIsSoundEffectsEnabled: (value: React.SetStateAction<boolean>) => void;
@@ -81,8 +81,8 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
   cardBgClass,
   cardState,
   setCardState,
-  isSpeechEnabled,
-  setIsSpeechEnabled,
+  // isSpeechEnabled, <- RIMOSSO
+  // setIsSpeechEnabled, <- RIMOSSO
   initAudio,
   isSoundEffectsEnabled,
   setIsSoundEffectsEnabled,
@@ -170,20 +170,8 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
                               {currentQuestion.type === 'charToRomaji' ? '' : 'Seleziona il carattere corretto'}
                             </div>
                             
-                            <div className="absolute top-0 right-0 flex space-x-2">
-                              <button
-                                onClick={() => {
-                                  handlePlayClick();
-                                  setIsSpeechEnabled(prev => !prev);
-                                }}
-                                className={`p-2 rounded-full transition-colors
-                                            ${isSpeechEnabled ? 'text-green-600 bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
-                                title={isSpeechEnabled ? 'Disattiva sintesi vocale' : 'Attiva sintesi vocale'}
-                              >
-                                {isSpeechEnabled ? <SpeechOnIcon /> : <SpeechOffIcon />}
-                              </button>
-                            </div>
-        
+                            {/* --- BLOCCO PULSANTE SPEECH RIMOSSO --- */}
+                            
                             <div className="absolute top-0 left-0">
                               <button
                                 onClick={() => {
@@ -192,7 +180,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
                                 }}
                                 className={`p-2 rounded-full transition-colors
                                             ${isSoundEffectsEnabled ? 'text-blue-600 bg-blue-100' : 'text-gray-400 hover:bg-gray-100'}`}
-                                title={isSoundEffectsEnabled ? 'Disattiva effetti sonori' : 'Attiva effetti sonori'}
+                                title={isSoundEffectsEnabled ? 'Disattiva audio' : 'Attiva audio'}
                               >
                                 {isSoundEffectsEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
                               </button>
