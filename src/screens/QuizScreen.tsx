@@ -12,7 +12,7 @@ import {
 
 // 2. IMPORTA I TIPI DI CUI HAI BISOGNO
 // (Assumi di aver già definito Character, Question, Feedback in data/characters.ts)
-import type { Character, Question, Feedback } from '../data/characters';
+import type { Question, Feedback, AnyCharacter } from '../data/characters';
 
 
 // 3. DEFINISCI LE PROPS CHE IL COMPONENTE RICEVERÀ DA APP.TSX
@@ -50,7 +50,7 @@ type QuizScreenProps = {
   selectedAnswer: string | null;
   
   // Props per la logica (che creeremo in App.tsx)
-  handleMultipleChoiceClick: (option: Character) => void; 
+  handleMultipleChoiceClick: (option: AnyCharacter) => void; 
   
   // Props per l'input di testo
   userAnswer: string;

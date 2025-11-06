@@ -1,20 +1,26 @@
-// src/firebaseConfig.ts
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// ⭐ 1. IMPORTA GETFIRESTORE
 import { getFirestore } from "firebase/firestore";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Le tue credenziali dal pannello Firebase
-// (Per sicurezza, è meglio metterle in un file .env)
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBl8eh2soUYPYu5UQgexFo1nCrtXKiCFyA",
-  authDomain: "kanadev-9c6f5.firebaseapp.com",
-  projectId: "kanadev-9c6f5",
-  storageBucket: "kanadev-9c6f5.firebasestorage.app",
-  messagingSenderId: "827378230789",
-  appId: "1:827378230789:web:a8d20ec072211b3bcbde6c"
+  apiKey: "AIzaSyB0deMtV2CpYVzRrnA9hXmbdLs7t7NciiM",
+  authDomain: "kanamate.firebaseapp.com",
+  projectId: "kanamate",
+  storageBucket: "kanamate.firebasestorage.app",
+  messagingSenderId: "995286381047",
+  appId: "1:995286381047:web:6d1fd272f557a7aa68fef2",
+  measurementId: "G-YNV2CP7K1E"
 };
 
-// Inizializza Firebase
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+getAnalytics(app);
 
-// Esporta il database Firestore per usarlo in altri file
+// Questo risolverà l'errore in kanjiService.ts
 export const db = getFirestore(app);

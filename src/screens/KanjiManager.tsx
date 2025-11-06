@@ -144,7 +144,6 @@ export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }
         k.id === editingKanji.id ? { ...k, ...updatedData } : k
       ));
       handleCancelEdit();
-      // ⭐ CHIAMA REFRESH GLOBALE
       await refreshDynamicData();
     } catch (err) { /* ... */ }
   };
@@ -169,7 +168,6 @@ export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }
       setNewKanjiChar('');
       setNewKanjiReading('');
       setNewKanjiMeaning('');
-      // ⭐ CHIAMA REFRESH GLOBALE
       await refreshDynamicData();
     } catch (err) { /* ... */ }
   };
@@ -179,16 +177,24 @@ export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }
       await deleteKanji(kanjiId);
       // Aggiorna stato locale
       setKanjiForSet(kanjiForSet.filter(k => k.id !== kanjiId));
-      // ⭐ CHIAMA REFRESH GLOBALE
       await refreshDynamicData();
     } catch (err) { /* ... */ }
   };
+  
+  // Funzione helper per scalare il font
+  const getDynamicFontSizeClass = (text: string): string => {
+    const length = text.length;
+    if (length <= 1) return 'text-8xl';
+    if (length === 2) return 'text-7xl';
+    if (length === 3) return 'text-6xl';
+    if (length === 4) return 'text-5xl';
+    if (length <= 6) return 'text-4xl';
+    return 'text-3xl'; // Fallback per parole molto lunghe
+  };
 
-  // --- FUNZIONE MODIFICATA ---
+  // --- Funzione di rendering per la lista dei set ---
   const renderSetList = () => (
     <>
-
-      {/* Griglia di Card */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-6">
         
         {/* Card #1: Aggiungi Nuovo Set */}
@@ -234,26 +240,38 @@ export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }
       </div>
     </>
   );
-  // --- FINE FUNZIONE MODIFICATA ---
 
-  const renderSetDetail = () => (
+  // --- Funzione di rendering per il dettaglio del set ---
+  const renderSetDetail = () => {
+    
+    // Calcola la classe del font dinamicamente
+    const dynamicFontSizeClass = getDynamicFontSizeClass(newKanjiChar);
+    
+    return (
     <>
       <h2 className="text-3xl font-bold text-gray-800 mb-6">
         {currentSet?.name}
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-10 gap-8">
-        {/* --- Colonna Form (invariata) --- */}
+        {/* --- Colonna Form (MODIFICATA) --- */}
         <div className="md:col-span-4 md:col-start-2 space-y-4">
-          <div className="w-full p-6 flex flex-col items-center space-y-4 rounded-2xl shadow-lg bg-white">
+          {/* ⭐ MODIFICA: Aggiunta 'h-64' (altezza fissa) e 'justify-center' */}
+          <div className="w-full h-64 p-6 flex flex-col items-center justify-center space-y-4 rounded-2xl shadow-lg bg-white">
+            
+            {/* INPUT KANJI MODIFICATO */}
             <input
               type="text"
               value={newKanjiChar}
               onChange={(e) => setNewKanjiChar(e.target.value)}
               placeholder="私"
-              className="w-full border-none focus:ring-0 focus:outline-none bg-transparent text-8xl font-bold japanese-char text-blue-600 text-center placeholder:text-blue-100"
-              maxLength={1}
+              // Applica la classe dinamica e rimuove il maxLength
+              className={`w-full border-none focus:ring-0 focus:outline-none bg-transparent font-bold japanese-char text-blue-600 text-center placeholder:text-blue-100 
+                          ${dynamicFontSizeClass}`} // <-- Font dinamico
+              // maxLength={1} // <-- Rimosso
             />
+            
+            {/* Input Lettura (Invariato) */}
             <input
               type="text"
               value={newKanjiReading} 
@@ -265,6 +283,8 @@ export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }
               autoCorrect="off"
             />
           </div>
+
+          {/* Input Significato (Invariato) */}
           <input
             type="text"
             value={newKanjiMeaning}
@@ -272,6 +292,7 @@ export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }
             placeholder="Significato (es. io)"
             className="w-full p-4 bg-white rounded-lg focus:outline-none focus:ring-0 border-none text-lg shadow-lg"
           />
+          {/* Bottoni (Invariati) */}
           <button
             onClick={editingKanji ? handleUpdateKanji : handleAddKanji}
             className="w-full p-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
@@ -352,8 +373,10 @@ export const KanjiManager: React.FC<KanjiManagerProps> = ({ refreshDynamicData }
         </div>
       </div>
     </>
-  );
-
+    );
+  };
+  
+  // --- Render Principale (Invariato) ---
   return (
     <div className="w-full p-8 relative"> 
       <style>{`
