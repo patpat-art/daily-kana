@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'; // Importa useState
-// Importa i tipi necessari (inclusi i tipi dinamici)
+// Importa i tipi necessari
 import type { 
   CharacterSet, 
   Character, 
@@ -8,24 +8,22 @@ import type {
   DynamicKanjiMap} from '../data/characters.ts';
 // Importa i valori necessari
 import { COLS_MAP, VOWEL_ROWS_MAP } from '../data/characters.ts';
-// Importa le funzioni helper (rimuovi le definizioni locali)
 import { getAccuracyMap, getAccuracyStyle } from '../utils/helper.ts';
-// Importa la card singola e l'icona per tornare indietro
 import { KanjiStatsCard } from '../components/KanjiStatsCard.tsx';
-import { ArrowLeftIcon } from '../components/Icons.tsx'; // Assicurati che il percorso sia corretto
+import { ArrowLeftIcon } from '../components/Icons.tsx';
 
-// Props aggiornate per StatsScreen
+// Props per Dashboard
 interface DashboardProps {
   history: SessionHistoryItem[];
-  allSets: CharacterSet; // La mappa unificata (per i dati statici)
-  onClose: () => void;
-  visibleSets: string[]; // Non più usato per i tab
-  allSetNames: string[]; // Non più usato per i tab
-  onPlayClick: () => void; // (Se serve, altrimenti rimuovi)
+  allSets: CharacterSet; // La mappa unificata
+  visibleSets: string[]; 
+  allSetNames: string[]; 
+  onPlayClick: () => void; 
   
   // Dati separati (necessari per il nuovo layout)
   dynamicSets: StudySet[];
   dynamicKanjiMap: DynamicKanjiMap;
+  onClose: () => void; // Aggiunto per compatibilità con HomeScreen
 }
 
 // Tipi per la navigazione interna
@@ -35,7 +33,6 @@ type MainTab = 'hiragana' | 'katakana' | 'kanji';
 export const Dashboard: React.FC<DashboardProps> = ({ 
   history, 
   allSets, 
-  onClose, 
   dynamicSets, 
   dynamicKanjiMap 
 }) => {
@@ -47,7 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // 1. STATS MAP (INVARIATO)
     const statsMap = useMemo(() => getAccuracyMap(history), [history]);
 
-    // 2. FUNZIONE HELPER PER GRID STATICHE (INVARIATO)
+    // 2. FUNZIONE HELPER PER GRID STATICHE
     const getStatsGridData = (setName: string, charType: string) => {
         const fullSet = allSets[setName];
         if (!fullSet) return { header: [], rows: [] };
@@ -136,23 +133,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // 1. Griglia STATICA (Hiragana/Katakana)
     const renderStaticStats = (setName: 'hiragana' | 'katakana') => {
       const data = staticStatsGrouped[setName];
-      if (!data) return (
-        <p className="text-gray-500 text-center p-4">
-          Nessuna statistica ancora per {setName}.
-        </p>
-      );
+      // Se non ci sono dati (es. history è vuoto), data sarà definito ma le griglie saranno vuote
+      if (!data) return null; 
       
+      // ⭐ MODIFICA: Mostra sempre le griglie, anche se vuote (saranno grigie)
       return (
         <div className="space-y-6">
-          {data.basic && data.basic.header.length > 0 && <StatsGrid title="Base" gridData={data.basic} />}
-          {data.dakuten && data.dakuten.header.length > 0 && <StatsGrid title="Dakuten" gridData={data.dakuten} />}
-          {data.handakuten && data.handakuten.header.length > 0 && <StatsGrid title="Handakuten" gridData={data.handakuten} />}
+          <StatsGrid title="Base" gridData={data.basic || getStatsGridData(setName, 'basic')} />
+          <StatsGrid title="Dakuten" gridData={data.dakuten || getStatsGridData(setName, 'dakuten')} />
+          <StatsGrid title="Handakuten" gridData={data.handakuten || getStatsGridData(setName, 'handakuten')} />
         </div>
       );
     };
 
     // 2. Menu dei Set di KANJI (Mostra Medie)
     const renderKanjiSetMenu = () => {
+       // ⭐ MODIFICA: Messaggio più appropriato se non ci sono set
+      if (dynamicSetStats.length === 0) {
+        return (
+          <p className="text-gray-500 text-center p-4">
+            Vai su "I Miei Kanji" per creare il tuo primo set di studio.
+          </p>
+        );
+      }
+      
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -218,28 +222,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // --- RENDER PRINCIPALE ---
     
     return (
-        <div className="bg-white w-full h-full p-6 overflow-y-auto shadow-2xl">
+        // ⭐ MODIFICA: Questo ora è un contenitore di pagina, non un pannello modale
+        <div className="w-full p-8">
             <div className="flex justify-between items-center mb-6">
               {/* Titolo Principale */}
-              <h2 className="text-2xl font-bold text-gray-800">Statistiche</h2>
-              {/* Bottone Chiudi */}
-              <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-3xl font-light leading-none">
-                  &times;
-              </button>
+              <h1 className="text-4xl font-bold text-gray-800">
+                Statistiche
+              </h1>
+              {/* ⭐ MODIFICA: Bottone Chiudi (X) RIMOSSO */}
             </div>
 
-            {/* Messaggio se non ci sono dati */}
-            {history.length === 0 && (
-              <div className="p-6 text-center">
-                <p className="text-gray-600">
-                  Completa qualche quiz nella sezione "Pratica" per vedere le tue statistiche qui!
-                </p>
-              </div>
-            )}
-            
             {/* Contenitore stile "SettingsPanel" con Tab */}
-            {history.length > 0 && (
-              <>
+            <div className="p-6 bg-white rounded-lg shadow-md">
                 {/* 1. TAB (Statici) */}
                 <div className="flex border-b mb-4">
                   <button
@@ -266,6 +260,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 {/* 2. CONTENUTO TAB (Logica condizionale) */}
+                {/* ⭐ MODIFICA: Rimosso il wrapper history.length > 0 */}
                 <div className="mt-6">
                   {activeTab === 'hiragana' && renderStaticStats('hiragana')}
                   {activeTab === 'katakana' && renderStaticStats('katakana')}
@@ -273,8 +268,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     viewingSetId ? renderKanjiDetailGrid(viewingSetId) : renderKanjiSetMenu()
                   )}
                 </div>
-              </>
-            )}
+            </div>
         </div>
     );
 };
@@ -294,47 +288,54 @@ interface StatsGridProps {
 const StatsGrid: React.FC<StatsGridProps> = ({ title, gridData }) => (
     <div>
         <h4 className="text-md font-semibold text-gray-600 mb-2">{title}</h4>
-        <div className="flex space-x-1">
-            <div className="grow flex flex-col space-y-1">
-                <div className="grid" style={{ gridTemplateColumns: `repeat(${gridData.header.length}, minmax(0, 1fr))` }}>
-                    {gridData.header.map(col => (
-                        <div key={col.id} className="w-full text-center py-1 text-sm font-medium text-gray-500">
-                            {col.label}
-                        </div>
-                    ))}
-                </div>
-                {gridData.rows.map(row => (
-                    <div key={row.id} className="grid" style={{ gridTemplateColumns: `repeat(${gridData.header.length}, minmax(0, 1fr))` }}>
-                        {row.chars.map((charData, index) => {
-                            if (!charData) {
-                                return <div key={`empty-${row.id}-${index}`} className="w-full h-12 bg-gray-50 border border-gray-100 rounded-sm"></div>;
-                            }
-                            // Stile e Tooltip per Kana
-                            const style = getAccuracyStyle(charData.accuracy ?? null, charData.isAttempted ?? false);
-                            const tooltip = charData.isAttempted 
-                                ? `${charData.char}: ${charData.accuracy?.toFixed(0)}% (${charData.stats.correct}/${charData.stats.attempts})`
-                                : `${charData.char}: Non tentato`;
-                            return (
-                                <div 
-                                    key={charData.char}
-                                    className={`w-full h-12 flex items-center justify-center text-xl font-bold rounded-sm border-2 border-white cursor-help japanese-char`}
-                                    title={tooltip}
-                                    style={style}
-                                >
-                                    {charData.char}
-                                </div>
-                            );
-                        })}
-                    </div>
-                ))}
-            </div>
-            <div className="flex flex-col space-y-1" style={{ paddingTop: '28px' }}>
-                 {gridData.rows.map(row => (
-                     <div key={row.id} className="w-8 h-12 flex items-center justify-center font-bold text-gray-600 text-xs">
-                         {row.label.toUpperCase()}
-                     </div>
-                 ))}
-            </div>
-        </div>
+        {/* ⭐ MODIFICA: Aggiunto controllo per griglie vuote */}
+        {gridData.header.length === 0 ? (
+          <div className="w-full h-12 bg-gray-50 border border-gray-100 rounded-sm flex items-center justify-center">
+            <span className="text-gray-400 text-sm">N/A</span>
+          </div>
+        ) : (
+          <div className="flex space-x-1">
+              <div className="grow flex flex-col space-y-1">
+                  <div className="grid" style={{ gridTemplateColumns: `repeat(${gridData.header.length}, minmax(0, 1fr))` }}>
+                      {gridData.header.map(col => (
+                          <div key={col.id} className="w-full text-center py-1 text-sm font-medium text-gray-500">
+                              {col.label}
+                          </div>
+                      ))}
+                  </div>
+                  {gridData.rows.map(row => (
+                      <div key={row.id} className="grid" style={{ gridTemplateColumns: `repeat(${gridData.header.length}, minmax(0, 1fr))` }}>
+                          {row.chars.map((charData, index) => {
+                              if (!charData) {
+                                  return <div key={`empty-${row.id}-${index}`} className="w-full h-12 bg-gray-50 border border-gray-100 rounded-sm"></div>;
+                              }
+                              // Stile e Tooltip per Kana
+                              const style = getAccuracyStyle(charData.accuracy ?? null, charData.isAttempted ?? false);
+                              const tooltip = charData.isAttempted 
+                                  ? `${charData.char}: ${charData.accuracy?.toFixed(0)}% (${charData.stats.correct}/${charData.stats.attempts})`
+                                  : `${charData.char}: Non tentato`;
+                              return (
+                                  <div 
+                                      key={charData.char}
+                                      className={`w-full h-12 flex items-center justify-center text-xl font-bold rounded-sm border-2 border-white cursor-help japanese-char`}
+                                      title={tooltip}
+                                      style={style}
+                                  >
+                                      {charData.char}
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  ))}
+              </div>
+              <div className="flex flex-col space-y-1" style={{ paddingTop: '28px' }}>
+                   {gridData.rows.map(row => (
+                       <div key={row.id} className="w-8 h-12 flex items-center justify-center font-bold text-gray-600 text-xs">
+                           {row.label.toUpperCase()}
+                       </div>
+                   ))}
+              </div>
+          </div>
+        )}
     </div>
 );
