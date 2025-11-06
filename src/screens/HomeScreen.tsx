@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 
-// 1. Importa i componenti
 import { Sidebar } from '../components/Sidebar';
 import { Dashboard } from './Dashboard';
-import { HomeQuizScreen } from './HomeQuizScreen';
-import { SettingsPanel } from '../components/SettingsPanel'; // Assicurati che l'import sia corretto
-
-// --- MODIFICA 1: Importa il tuo KanjiManager ---
 import { KanjiManager } from './KanjiManager'; 
+import { HomeQuizScreen } from './HomeQuizScreen';
+import { SettingsPanel } from '../components/SettingsPanel';
 
-// 2. Importa i tipi
+// 1. Importa i tipi necessari
 import type { SessionHistoryItem, CharacterSet, SelectionMap } from '../data/characters.ts';
 type Direction = 'charToRomaji' | 'romajiToChar';
 
-// --- MODIFICA 2: Aggiungi 'kanjiManager' alla lista delle viste possibili ---
+// 2. Definisci il tipo per le viste attive
 type ActiveView = 'dashboard' | 'quiz' | 'settings' | 'kanjiManager';
 
 // 3. Definisci le props che questo componente riceve da App.tsx
@@ -40,25 +37,21 @@ type HomeScreenProps = {
   resetProgress: () => Promise<void>;
   isAutoSkipEnabled: boolean;
   setIsAutoSkipEnabled: React.Dispatch<React.SetStateAction<boolean>>;
-  
-  // ⭐️ AGGIUNTA CHIAVE: Questa prop viene passata da App.tsx/file genitore
-  // per risolvere l'errore del passaggio a SettingsPanel.
   allSetNames: string[]; 
 };
 
 
 export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
+
   // Stato per la vista attiva, con 'quiz' come default
   const [activeView, setActiveView] = useState<ActiveView>('quiz');
 
-  // Creiamo una funzione "wrapper" semplice che corrisponde
-  // al tipo atteso da Sidebar: (view: ActiveView) => void
   const handleSetActiveView = (view: ActiveView) => {
     setActiveView(view);
   };
 
   return (
-    // 5. Contenitore principale
+    // 4. Contenitore principale
     <div
       className={`flex w-full min-h-screen absolute top-0 left-0
                   transition-all duration-500 ease-in-out
@@ -68,15 +61,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
                       : 'translate-x-0 opacity-100'
                   }`}
     >
-      {/* La Sidebar (sempre ridotta) */}
+
       <Sidebar
         activeView={activeView}
-        // Ora passiamo la nostra funzione "wrapper"
+
         setActiveView={handleSetActiveView}
       />
 
-      {/* L'UNICA area contenuti. 
-          Renderizza una sola vista alla volta. */}
       <main className="flex-1 h-screen overflow-y-auto bg-gray-50">
         
         {/* Vista 1: Pratica (Default) */}
@@ -87,7 +78,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
           <Dashboard 
             history={props.sessionHistory}
             allSets={props.allSets}
-            // MODIFICATO: Mostra tutti i set per i progressi
             visibleSets={Object.keys(props.allSets)}
           />
         )}
@@ -103,12 +93,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = (props) => {
             isAutoSkipEnabled={props.isAutoSkipEnabled}
             setIsAutoSkipEnabled={props.setIsAutoSkipEnabled}
             onPlayClick={props.handlePlayClick}
-            // ⭐️ AGGIUNTA CHIAVE QUI: Passiamo la prop che abbiamo appena definito
             allSetNames={props.allSetNames}
           />
         )}
 
-        {/* --- MODIFICA 4: Aggiungi il rendering per KanjiManager --- */}
+        {/* Vista 4: Gestione Kanji */}
         {activeView === 'kanjiManager' && (
           <KanjiManager />
         )}
